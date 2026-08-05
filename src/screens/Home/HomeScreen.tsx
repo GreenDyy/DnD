@@ -1,8 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { colors } from '../../theme/colors';
+import { aa } from '../../utils';
+import { useNavigation } from '@react-navigation/native';
 
 function HomeScreen() {
+
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Morse Trainer</Text>
@@ -28,6 +32,16 @@ function HomeScreen() {
           <Text style={styles.cardTitle}>Playground</Text>
           <Text style={styles.cardDesc}>
             Thử tốc độ và các chế độ phát
+          </Text>
+        </TouchableOpacity>
+
+         <TouchableOpacity style={styles.card}
+          onPress={() => {
+            navigation.navigate
+          }}>
+          <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
+          <Text style={styles.cardDesc}>
+            Test
           </Text>
         </TouchableOpacity>
       </View>
@@ -64,7 +78,7 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: CARD_SIZE,
+    width: '30%',
     height: CARD_SIZE,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
