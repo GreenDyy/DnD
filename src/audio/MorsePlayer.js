@@ -66,7 +66,7 @@ class MorsePlayer {
     }
 
     playCharacter(char) {
-
+        console.log(`Playing character: ${char}`);
         const code = MORSE_MAP[char.toUpperCase()];
 
         if (!code)

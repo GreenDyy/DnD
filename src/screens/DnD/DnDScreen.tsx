@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from "../../theme";
 import MorsePlayer from "../../audio/MorsePlayer";
 
@@ -22,6 +22,7 @@ const dataSpecial = [
 ]
 
 const handlePressKey = (id: string) => {
+    console.log(`Pressed key: ${id}`);
     MorsePlayer.playCharacter(id);
 }
 
@@ -53,10 +54,8 @@ function DnDScreen() {
                     return (
                         <TouchableOpacity key={index} style={styles.button} onPress={() => {
                             handlePressKey(item.id)
-                        }}>                            <Text style={{
-                            textAlign: 'center',
-                            color: colors.text
-                        }}>{item.text}</Text>
+                        }}>
+                            <Text style={{ textAlign: 'center', color: colors.text }}>{item.text}</Text>
                         </TouchableOpacity>
                     )
                 })
