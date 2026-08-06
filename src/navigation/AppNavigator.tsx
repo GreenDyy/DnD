@@ -12,6 +12,7 @@ function AppNavigator() {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
     </Stack.Navigator>
+    
   );
 }
 
