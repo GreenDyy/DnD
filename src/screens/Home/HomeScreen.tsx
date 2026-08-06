@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
-import { aa } from '../../utils';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Feather';
 
 function HomeScreen() {
-
   const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Morse Trainer</Text>
@@ -16,33 +16,31 @@ function HomeScreen() {
 
       <View style={styles.grid}>
         <TouchableOpacity style={styles.card}>
+          <View style={[styles.iconWrap, { backgroundColor: '#EBF5FF' }]}>
+            <Icon name="book-open" size={28} color={colors.primary} />
+          </View>
           <Text style={styles.cardTitle}>Học báo vụ</Text>
-          <Text style={styles.cardDesc}>
-            Học bảng Morse và luyện nghe
-          </Text>
+          <Text style={styles.cardDesc}>Học bảng Morse và luyện nghe</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}
+        <TouchableOpacity
+          style={styles.card}
           onPress={() => {
-            console.log("dasdadadadasda")
-            Alert.alert("Chức năng đang phát triển", "Chức năng này đang được phát triển. Vui lòng quay lại sau.", [
-              { text: "OK" }
-            ]);
+            navigation.navigate('DnDScreen');
           }}>
-          <Text style={styles.cardTitle}>Playground</Text>
-          <Text style={styles.cardDesc}>
-            Thử tốc độ và các chế độ phát
-          </Text>
-        </TouchableOpacity>
-
-         <TouchableOpacity style={styles.card}
-          onPress={() => {
-            navigation.navigate
-          }}>
+          <View style={[styles.iconWrap, { backgroundColor: '#F0FDF4' }]}>
+            <Icon name="headphones" size={28} color={colors.success} />
+          </View>
           <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
-          <Text style={styles.cardDesc}>
-            Test
-          </Text>
+          <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card}>
+          <View style={[styles.iconWrap, { backgroundColor: '#FEF3C7' }]}>
+            <Icon name="zap" size={28} color="#D97706" />
+          </View>
+          <Text style={styles.cardTitle}>Playground</Text>
+          <Text style={styles.cardDesc}>Thử tốc độ và chế độ phát</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -68,7 +66,7 @@ const styles = StyleSheet.create({
   subTitle: {
     marginTop: 8,
     fontSize: 15,
-    color: '#7A7A7A',
+    color: colors.textSecondary,
     marginBottom: 40,
   },
 
@@ -81,36 +79,34 @@ const styles = StyleSheet.create({
     width: '30%',
     height: CARD_SIZE,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-
+    backgroundColor: colors.white,
+    padding: 14,
     justifyContent: 'space-between',
-
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
+    shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
 
-  icon: {
-    fontSize: 42,
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   cardTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
 
   cardDesc: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
 });
 
