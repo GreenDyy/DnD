@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
+import { Icon } from 'react-native-elements';
 
 function HomeScreen() {
   const navigation = useNavigation();
@@ -17,7 +17,7 @@ function HomeScreen() {
       <View style={styles.grid}>
         <TouchableOpacity style={styles.card}>
           <View style={[styles.iconWrap, { backgroundColor: '#EBF5FF' }]}>
-            <Icon name="book-open" size={28} color={colors.primary} />
+            <Icon name="book-open" type="feather" size={28} color={colors.primary} />
           </View>
           <Text style={styles.cardTitle}>Học báo vụ</Text>
           <Text style={styles.cardDesc}>Học bảng Morse và luyện nghe</Text>
@@ -29,7 +29,7 @@ function HomeScreen() {
             navigation.navigate('DnDScreen');
           }}>
           <View style={[styles.iconWrap, { backgroundColor: '#F0FDF4' }]}>
-            <Icon name="headphones" size={28} color={colors.success} />
+            <Icon name="headphones" type="feather" size={28} color={colors.success} />
           </View>
           <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
           <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu</Text>
@@ -37,7 +37,7 @@ function HomeScreen() {
 
         <TouchableOpacity style={styles.card}>
           <View style={[styles.iconWrap, { backgroundColor: '#FEF3C7' }]}>
-            <Icon name="zap" size={28} color="#D97706" />
+            <Icon name="zap" type="feather" size={28} color="#D97706" />
           </View>
           <Text style={styles.cardTitle}>Playground</Text>
           <Text style={styles.cardDesc}>Thử tốc độ và chế độ phát</Text>
