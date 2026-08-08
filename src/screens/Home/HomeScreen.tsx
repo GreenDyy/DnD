@@ -50,6 +50,16 @@ function HomeScreen() {
       Luyện tập truyền điện và nhận điện
     </Text>
   </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[styles.card, styles.tealCard]}
+    onPress={() => navigation.navigate('ChatScreen')}>
+    <Text style={styles.badge}>CHAT</Text>
+    <Text style={styles.cardTitle}>Trợ lý Morse</Text>
+    <Text style={styles.cardDesc}>
+      Hỏi đáp về mã Morse
+    </Text>
+  </TouchableOpacity>
 </View>
     </View>
   );
@@ -102,6 +112,10 @@ orangeCard: {
 
 purpleCard: {
   backgroundColor: '#F3E8FF',
+},
+
+tealCard: {
+  backgroundColor: '#E6FFFA',
 },
 
 badge: {

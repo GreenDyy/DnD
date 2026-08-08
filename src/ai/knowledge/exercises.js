@@ -1,0 +1,10 @@
+export default {
+  "topic": "exercises",
+  "exercises": [
+    { "type": "decode", "question": "Giải mã tín hiệu ...", "answer": "S" },
+    { "type": "decode", "question": "Giải mã tín hiệu ---", "answer": "O" },
+    { "type": "decode", "question": "Giải mã tín hiệu .-", "answer": "A" },
+    { "type": "encode", "question": "Mã hóa chữ S bằng Morse.", "answer": "..." },
+    { "type": "encode", "question": "Mã hóa chữ O bằng Morse.", "answer": "---" }
+  ]
+};
