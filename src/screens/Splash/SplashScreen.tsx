@@ -18,7 +18,7 @@ function SplashScreen() {
         index: 0,
         routes: [{ name: 'HomeScreen' }],
       });
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -33,7 +33,7 @@ function SplashScreen() {
 
       <ActivityIndicator
         size="large"
-        color={colors.primary}
+        color={colors.success}
         style={styles.loading}
       />
     </View>

@@ -15,7 +15,10 @@ function HomeScreen() {
       </Text>
 
       <View style={styles.grid}>
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => navigation.navigate('ElectricPanel')}
+        >
           <View style={[styles.iconWrap, { backgroundColor: '#EBF5FF' }]}>
             <Icon name="book-open" type="feather" size={28} color={colors.primary} />
           </View>
@@ -29,7 +32,7 @@ function HomeScreen() {
             navigation.navigate('DnDScreen');
           }}>
           <View style={[styles.iconWrap, { backgroundColor: '#F0FDF4' }]}>
-            <Icon name="headphones" type="feather" size={28} color={colors.success} />
+            <Icon name="headphones" type="material" size={28} color={colors.success} />
           </View>
           <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
           <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu</Text>
