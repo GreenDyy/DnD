@@ -2,11 +2,14 @@ import React, {useState} from 'react';
 import {
   View,
   TextInput,
-  Button,
-  StyleSheet,
   StatusBar,
   useColorScheme,
   Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
@@ -14,19 +17,20 @@ import {
   generatePracticeText,
   PracticeMode,
 } from '../../utils/morseGenerator';
+import {colors} from '../../theme';
+
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import {styles} from './styles';
 
 function ElectroTableScreen() {
   const navigation = useNavigation<any>();
-
   const isDarkMode = useColorScheme() === 'dark';
 
   const [groups, setGroups] = useState('10');
   const [groupLength, setGroupLength] = useState('5');
-
   const [wpm, setWpm] = useState(20);
-
-  const [mode, setMode] =
-    useState<PracticeMode>('letters');
+  const [mode, setMode] = useState<PracticeMode>('letters');
 
   const generateTable = () => {
     const text = generatePracticeText({
@@ -45,156 +49,162 @@ function ElectroTableScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar
-        barStyle={
-          isDarkMode
-            ? 'light-content'
-            : 'dark-content'
-        }
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
       />
 
-      <View style={styles.content}>
-        <Text style={styles.label}>
-          Số nhóm điện
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          value={groups}
-          onChangeText={setGroups}
-          keyboardType="numeric"
-        />
-
-        <View style={styles.space} />
-
-        <Text style={styles.label}>
-          Số ký tự / nhóm
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          value={groupLength}
-          onChangeText={setGroupLength}
-          keyboardType="numeric"
-        />
-
-        <View style={styles.space} />
-
-        <Text style={styles.label}>
-          Loại điện
-        </Text>
-
-        <View style={styles.row}>
-          <Button
-            title={
-              mode === 'letters'
-                ? '✓ Chữ'
-                : 'Chữ'
-            }
-            onPress={() =>
-              setMode('letters')
-            }
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.iconButton}
+        >
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={24}
+            color={colors.primary}
           />
+        </TouchableOpacity>
 
-          <View style={{width: 8}} />
-
-          <Button
-            title={
-              mode === 'numbers'
-                ? '✓ Số'
-                : 'Số'
-            }
-            onPress={() =>
-              setMode('numbers')
-            }
-          />
-
-          <View style={{width: 8}} />
-
-          <Button
-            title={
-              mode === 'mixed'
-                ? '✓ Hỗn hợp'
-                : 'Hỗn hợp'
-            }
-            onPress={() =>
-              setMode('mixed')
-            }
-          />
+        <View style={styles.headerTitle}>
+          <Text style={styles.title}>Tạo bảng điện</Text>
+          <Text style={styles.subtitle}>Chọn thông số, sau đó bắt đầu luyện tập Morse.</Text>
         </View>
 
-        <View style={styles.space} />
-
-        <Text style={styles.label}>
-          Tốc độ: {wpm} WPM
-        </Text>
-
-        <View style={styles.row}>
-          <Button
-            title="-"
-            onPress={() =>
-              setWpm(prev =>
-                Math.max(5, prev - 5),
-              )
-            }
-          />
-
-          <View style={{width: 12}} />
-
-          <Button
-            title="+"
-            onPress={() =>
-              setWpm(prev =>
-                Math.min(50, prev + 5),
-              )
-            }
-          />
-        </View>
-
-        <View style={styles.space} />
-
-        <Button
-          title="Tạo bảng điện"
-          onPress={generateTable}
-        />
+        <View style={styles.iconButton} />
       </View>
-    </View>
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Số nhóm điện</Text>
+              <TextInput
+                style={styles.input}
+                value={groups}
+                onChangeText={setGroups}
+                keyboardType="numeric"
+                placeholder="10"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Số ký tự / nhóm</Text>
+              <TextInput
+                style={styles.input}
+                value={groupLength}
+                onChangeText={setGroupLength}
+                keyboardType="numeric"
+                placeholder="5"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Loại điện</Text>
+              <View style={styles.modeContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.modeButton,
+                    mode === 'letters' && styles.modeButtonActive,
+                  ]}
+                  onPress={() => setMode('letters')}
+                >
+                  <Text
+                    style={[
+                      styles.modeText,
+                      mode === 'letters' && styles.modeTextActive,
+                    ]}
+                  >
+                    Chữ
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modeButton,
+                    mode === 'numbers' && styles.modeButtonActive,
+                  ]}
+                  onPress={() => setMode('numbers')}
+                >
+                  <Text
+                    style={[
+                      styles.modeText,
+                      mode === 'numbers' && styles.modeTextActive,
+                    ]}
+                  >
+                    Số
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modeButton,
+                    mode === 'mixed' && styles.modeButtonActive,
+                  ]}
+                  onPress={() => setMode('mixed')}
+                >
+                  <Text
+                    style={[
+                      styles.modeText,
+                      mode === 'mixed' && styles.modeTextActive,
+                    ]}
+                  >
+                    Hỗn hợp
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Tốc độ luyện tập</Text>
+              <View style={styles.speedRow}>
+                <TouchableOpacity
+                  style={styles.speedControl}
+                  onPress={() => setWpm(prev => Math.max(5, prev - 5))}
+                >
+                  <Text style={styles.speedControlText}>-</Text>
+                </TouchableOpacity>
+
+                <View style={styles.speedValueBox}>
+                  <Text style={styles.speedValue}>{wpm}</Text>
+                  <Text style={styles.speedLabel}>chữ / phút</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.speedControl}
+                  onPress={() => setWpm(prev => Math.min(50, prev + 5))}
+                >
+                  <Text style={styles.speedControlText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.generateButton}
+            onPress={generateTable}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="radio-tower"
+              size={20}
+              color="#FFF"
+            />
+            <Text style={styles.generateButtonText}>TẠO BẢNG ĐIỆN</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  content: {
-    flex: 1,
-    padding: 24,
-  },
-
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  space: {
-    height: 16,
-  },
-});
 
 export default ElectroTableScreen;

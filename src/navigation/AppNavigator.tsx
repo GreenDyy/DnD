@@ -5,7 +5,7 @@ import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
 import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
-import PracticeScreen from '../screens/ElectroTable/PracticeScreen';
+import PracticeScreen from '../screens/PracticeScreen/PracticeScreen';
 
 const Stack = createNativeStackNavigator();
 
