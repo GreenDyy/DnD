@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
 import DnDScreen from '../screens/DnD/DnDScreen';
+import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,6 +14,7 @@ function AppNavigator() {
       <Stack.Screen name="SplashScreen" component={SplashScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
+      <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
     </Stack.Navigator>
   );
 }

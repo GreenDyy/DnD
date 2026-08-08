@@ -15,34 +15,42 @@ function HomeScreen() {
       </Text>
 
       <View style={styles.grid}>
-        <TouchableOpacity style={styles.card}>
-          <View style={[styles.iconWrap, { backgroundColor: '#EBF5FF' }]}>
-            <Icon name="book-open" type="feather" size={28} color={colors.primary} />
-          </View>
-          <Text style={styles.cardTitle}>Học báo vụ</Text>
-          <Text style={styles.cardDesc}>Học bảng Morse và luyện nghe</Text>
-        </TouchableOpacity>
+  <TouchableOpacity style={[styles.card, styles.blueCard]}>
+    <Text style={styles.badge}>HỌC</Text>
+    <Text style={styles.cardTitle}>Học báo vụ</Text>
+    <Text style={styles.cardDesc}>
+      Học bảng Morse và luyện nghe tín hiệu
+    </Text>
+  </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => {
-            navigation.navigate('DnDScreen');
-          }}>
-          <View style={[styles.iconWrap, { backgroundColor: '#F0FDF4' }]}>
-            <Icon name="headphones" type="feather" size={28} color={colors.success} />
-          </View>
-          <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
-          <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu</Text>
-        </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.card, styles.greenCard]}
+    onPress={() => navigation.navigate('DnDScreen')}>
+    <Text style={styles.badge}>NGHE</Text>
+    <Text style={styles.cardTitle}>Tíc Tà Sound</Text>
+    <Text style={styles.cardDesc}>
+      Nghe và nhận dạng tín hiệu Morse
+    </Text>
+  </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}>
-          <View style={[styles.iconWrap, { backgroundColor: '#FEF3C7' }]}>
-            <Icon name="zap" type="feather" size={28} color="#D97706" />
-          </View>
-          <Text style={styles.cardTitle}>Playground</Text>
-          <Text style={styles.cardDesc}>Thử tốc độ và chế độ phát</Text>
-        </TouchableOpacity>
-      </View>
+  <TouchableOpacity style={[styles.card, styles.orangeCard]}>
+    <Text style={styles.badge}>TEST</Text>
+    <Text style={styles.cardTitle}>Playground</Text>
+    <Text style={styles.cardDesc}>
+      Thử tốc độ và chế độ phát
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[styles.card, styles.purpleCard]}
+    onPress={() => navigation.navigate('ElectroTableScreen')}>
+    <Text style={styles.badge}>T-Q</Text>
+    <Text style={styles.cardTitle}>Bảng điện</Text>
+    <Text style={styles.cardDesc}>
+      Luyện tập truyền điện và nhận điện
+    </Text>
+  </TouchableOpacity>
+</View>
     </View>
   );
 }
@@ -57,57 +65,80 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
 
-  header: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: colors.text,
-  },
-
-  subTitle: {
-    marginTop: 8,
-    fontSize: 15,
-    color: colors.textSecondary,
-    marginBottom: 40,
-  },
-
   grid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  gap: 16,
+},
 
-  card: {
-    width: '30%',
-    height: CARD_SIZE,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    padding: 14,
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+card: {
+  width: '47%',
+  minHeight: 160,
+  borderRadius: 24,
+  padding: 18,
+  justifyContent: 'space-between',
+  elevation: 6,
+  shadowColor: '#000',
+  shadowOpacity: 0.08,
+  shadowRadius: 12,
+  shadowOffset: {
+    width: 0,
+    height: 4,
   },
+},
 
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+blueCard: {
+  backgroundColor: '#E8F1FF',
+},
 
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
+greenCard: {
+  backgroundColor: '#EAFBF0',
+},
 
-  cardDesc: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    lineHeight: 16,
-  },
+orangeCard: {
+  backgroundColor: '#FFF4E5',
+},
+
+purpleCard: {
+  backgroundColor: '#F3E8FF',
+},
+
+badge: {
+  alignSelf: 'flex-start',
+  backgroundColor: 'rgba(255,255,255,0.8)',
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 12,
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#444',
+},
+
+cardTitle: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: '#111827',
+},
+
+cardDesc: {
+  fontSize: 13,
+  lineHeight: 20,
+  color: '#4B5563',
+},
+
+header: {
+  fontSize: 34,
+  fontWeight: '800',
+  color: '#111827',
+},
+
+subTitle: {
+  marginTop: 8,
+  fontSize: 16,
+  color: '#6B7280',
+  marginBottom: 32,
+},
 });
 
 export default HomeScreen;
