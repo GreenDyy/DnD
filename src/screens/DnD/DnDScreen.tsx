@@ -1,51 +1,32 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from "../../theme";
-
+import MorsePlayer from "../../audio/MorsePlayer";
 
 const dataDnDKey = [
-    {
-        id: "a",
-        text: "A: An châu",
-    },
-    {
-        id: 'b',
-        text: "B: Bắc cạn",
-    },
-    {
-        id: 'c',
-        text: "C: Cao bằng",
-    },
-    {
-        id: 'd',
-        text: "D: Đáp cầu",
-    }
+    { id: "a", text: "A: An châu" },
+    { id: "b", text: "B: Bắc cạn" },
+    { id: "c", text: "C: Cao bằng" },
+    { id: "d", text: "D: Đáp cầu" },
 ]
 
 const dataDnDNumber = [
-    {
-        id: '1',
-        text: "1: Một",
-    },
-    {
-        id: '2',
-        text: "2: Hai",
-    }
+    { id: "1", text: "1: Một" },
+    { id: "2", text: "2: Hai" },
 ]
 
-const handlePressKey = (id: any) => {
-    Alert.alert("Nút ", "id: " + id, [
-        { text: "OK" }
-    ]);
-    //Play sound DnD
+const dataSpecial = [
+    { id: ".", text: "Dấu chấm" },
+    { id: ",", text: "Dấu phẩy" },
+    { id: "?", text: "Dấu hỏi" },
+]
+
+const handlePressKey = (id: string) => {
+    console.log(`Pressed key: ${id}`);
+    MorsePlayer.playCharacter(id);
 }
 
 function DnDScreen() {
-    const [state, setState] = useState(0)
-    useEffect(() => {
-        console.log("state: ", state)
-    }, [state])
-
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Tic ta</Text>
@@ -73,10 +54,8 @@ function DnDScreen() {
                     return (
                         <TouchableOpacity key={index} style={styles.button} onPress={() => {
                             handlePressKey(item.id)
-                        }}>                            <Text style={{
-                            textAlign: 'center',
-                            color: colors.text
-                        }}>{item.text}</Text>
+                        }}>
+                            <Text style={{ textAlign: 'center', color: colors.text }}>{item.text}</Text>
                         </TouchableOpacity>
                     )
                 })
@@ -84,14 +63,15 @@ function DnDScreen() {
 
             <Text style={styles.header}>Ký hiệu đặc biệt</Text>
             {
-                dataDnDNumber.map((item, index) => {
+                dataSpecial.map((item, index) => {
                     return (
                         <TouchableOpacity key={index} style={styles.button} onPress={() => {
                             handlePressKey(item.id)
-                        }}>                            <Text style={{
-                            textAlign: 'center',
-                            color: colors.text
-                        }}>{item.text}</Text>
+                        }}>
+                            <Text style={{
+                                textAlign: 'center',
+                                color: colors.text
+                            }}>{item.text}</Text>
                         </TouchableOpacity>
                     )
                 })
