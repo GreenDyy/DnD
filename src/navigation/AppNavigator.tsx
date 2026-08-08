@@ -5,6 +5,7 @@ import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
 import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
+import PracticeScreen from '../screens/ElectroTable/PracticeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ function AppNavigator() {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
       <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
+      <Stack.Screen name="PracticeScreen" component={PracticeScreen} />
     </Stack.Navigator>
   );
 }
