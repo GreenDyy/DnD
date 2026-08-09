@@ -10,7 +10,7 @@ import { colors } from '../../theme/colors';
 import { images } from '../../assets';
 
 function SplashScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const timer = setTimeout(() => {
