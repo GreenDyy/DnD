@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { colors } from '../../theme/colors';
-import { Icon } from 'react-native-elements';
+import { ArrowLeft, Play, Square } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import MorsePlayer from '../../audio/MorsePlayer';
 import MORSE_MAP from '../../audio/morseMap';
@@ -64,7 +64,7 @@ function ElectricPanel() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" type="feather" size={24} color={colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Electric Panel</Text>
         <View style={{ width: 24 }} />
@@ -98,12 +98,11 @@ function ElectricPanel() {
           style={[styles.playBtn, isPlaying && styles.stopBtn]}
           onPress={isPlaying ? stopAll : playAll}
         >
-          <Icon
-            name={isPlaying ? 'square' : 'play'}
-            type="feather"
-            size={28}
-            color={colors.white}
-          />
+          {isPlaying ? (
+            <Square size={28} color={colors.white} />
+          ) : (
+            <Play size={28} color={colors.white} />
+          )}
           <Text style={styles.playBtnText}>{isPlaying ? 'Stop' : 'Play'}</Text>
         </TouchableOpacity>
       </View>
@@ -157,7 +156,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   charBoxActive: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E6FFFA',
     borderColor: colors.primary,
   },
   charText: {

@@ -1,26 +1,37 @@
 import React from 'react';
-import { Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { BookOpen, Headphones, Zap, Radio, MessageCircle } from 'lucide-react-native';
 
 interface HomeCardProps {
   badge: string;
   title: string;
   desc: string;
   color: string;
+  icon: string;
   screen?: string;
 }
 
-function HomeCard(props: HomeCardProps) {
-  const { badge, title, desc, color, screen } = props;
-  
+const iconMap: Record<string, React.ComponentType<any>> = {
+  book: BookOpen,
+  headphones: Headphones,
+  zap: Zap,
+  radio: Radio,
+  chat: MessageCircle,
+};
+
+function HomeCard({ badge, title, desc, color, icon, screen }: HomeCardProps) {
   const navigation = useNavigation<any>();
+  const IconComponent = iconMap[icon] || BookOpen;
 
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: color }]}
       onPress={() => screen && navigation.navigate(screen)}
     >
-      <Text style={styles.badge}>{badge}</Text>
+      <View style={styles.iconWrap}>
+        <IconComponent size={28} color="#111827" />
+      </View>
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardDesc}>{desc}</Text>
     </TouchableOpacity>
@@ -40,15 +51,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  badge: {
-    alignSelf: 'flex-start',
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.8)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#444',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardTitle: {
     fontSize: 20,

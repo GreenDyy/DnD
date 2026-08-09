@@ -10,8 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { colors } from '../../theme/colors';
-import { Icon } from 'react-native-elements';
-import { BookOpen, Play, Settings, Radio } from 'lucide-react-native';
+import { ArrowLeft, Send } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { knowledgeService } from '../../ai';
@@ -68,8 +67,7 @@ function ChatScreen() {
     >
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          {/* <Icon name="arrow-left" type="feather" size={24} color={colors.text} /> */}
-          <BookOpen size={24} color={colors.text} />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Chat Morse</Text>
         <View style={{ width: 24 }} />
@@ -113,7 +111,7 @@ function ChatScreen() {
           onSubmitEditing={handleSend}
         />
         <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-          <Icon name="send" type="feather" size={20} color={colors.white} />
+          <Send size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

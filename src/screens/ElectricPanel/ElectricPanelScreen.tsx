@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
-import { Icon } from 'react-native-elements';
 
 function ElectricPanelScreen() {
     return (
