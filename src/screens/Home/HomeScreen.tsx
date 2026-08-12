@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import HomeCard from '../../components/HomeCard';
-import { testLocalModel } from '../../ai/testLocalAI';
 
 const cards = [
   { badge: 'HỌC', title: 'Học báo vụ', desc: 'Học bảng Morse và luyện nghe tín hiệu', color: '#E6FFFA', icon: 'book' },
@@ -14,7 +13,6 @@ const cards = [
 
 function HomeScreen() {
   useEffect(() => {
-    testLocalModel();
   }, []);
 
   return (
