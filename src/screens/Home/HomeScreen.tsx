@@ -60,6 +60,16 @@ function HomeScreen() {
       Hỏi đáp về mã Morse
     </Text>
   </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[styles.card, styles.tealCard]}
+    onPress={() => navigation.navigate('AudioTest')}>
+    <Text style={styles.badge}>test morse</Text>
+    <Text style={styles.cardTitle}>test morse từ thiết bị</Text>
+    <Text style={styles.cardDesc}>
+      react-native-audio-api
+    </Text>
+  </TouchableOpacity>
 </View>
     </View>
   );

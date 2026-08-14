@@ -37,3 +37,18 @@ export const MORSE_MAP: Record<string, string> = {
   '8': '---..',
   '9': '----.',
 };
+
+export function textToMorse(text: string): string {
+  return text
+    .toUpperCase()
+    .split('')
+    .map(char => {
+      if (char === ' ') {
+        return '/';
+      }
+
+      return MORSE_MAP[char] ?? '';
+    })
+    .filter(Boolean)
+    .join(' ');
+}
