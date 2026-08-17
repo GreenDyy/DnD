@@ -1,8 +1,4 @@
-import {
-  AudioContext,
-  OscillatorNode,
-  GainNode,
-} from 'react-native-audio-api';
+import { AudioContext, OscillatorNode, GainNode } from 'react-native-audio-api';
 
 // Hàm chuyển văn bản bình thường thành chuỗi Morse.
 // Ví dụ: "SOS" → "... --- ..."
@@ -34,6 +30,15 @@ class MorseAudioEngine {
 
   // Đánh dấu hiện có đang phát tiếng beep hay không
   private playing = false;
+
+  // Trạng thái tạm dừng / tiếp tục
+  private isPaused = false;
+  private stopRequested = false;
+  private currentText = '';
+  private currentMorse = '';
+  private currentIndex = 0;
+  private resumeResolver: (() => void) | null = null;
+  private playbackToken = 0;
 
   // Khởi tạo audio engine nếu chưa khởi tạo
   private ensureInitialized() {
@@ -152,72 +157,127 @@ class MorseAudioEngine {
     });
   }
 
-  // Phát một chuỗi Morse.
+  private async waitUntilResumed() {
+    if (!this.isPaused) {
+      return;
+    }
+
+    await new Promise<void>(resolve => {
+      this.resumeResolver = resolve;
+    });
+
+    this.resumeResolver = null;
+  }
+
+  // Phát một chuỗi Morse từ vị trí bắt đầu.
   // Ví dụ: "... --- ..." hoặc ".- / -..."
-  async playMorse(morse: string) {
-    // Khởi động audio context trước khi phát
+  private async playMorseFromIndex(morse: string, startIndex: number) {
+    const token = ++this.playbackToken;
+    this.stopRequested = false;
+    this.currentMorse = morse;
+    this.currentIndex = startIndex;
+
     await this.start();
 
-    // Lấy thời lượng một đơn vị Morse hiện tại
     const unit = this.getUnitDuration();
 
-    // Duyệt qua từng ký hiệu trong chuỗi Morse
-    for (let i = 0; i < morse.length; i++) {
+    for (let i = startIndex; i < morse.length; i++) {
+      if (this.playbackToken !== token) {
+        return;
+      }
+
+      while (this.isPaused) {
+        if (this.playbackToken !== token) {
+          return;
+        }
+        await this.waitUntilResumed();
+      }
+
+      if (this.stopRequested || this.playbackToken !== token) {
+        return;
+      }
+
       const symbol = morse[i];
 
-      // Dấu chấm: phát 1 đơn vị thời gian
       if (symbol === '.') {
         await this.tone(unit);
-
-        // Khoảng cách giữa các dấu trong cùng một ký tự: 1 unit
+        if (this.stopRequested || this.playbackToken !== token) {
+          return;
+        }
         await this.silence(1);
       }
 
-      // Dấu gạch: phát 3 đơn vị thời gian
       if (symbol === '-') {
         await this.tone(unit * 3);
-
-        // Khoảng cách giữa các dấu trong cùng một ký tự: 1 unit
+        if (this.stopRequested || this.playbackToken !== token) {
+          return;
+        }
         await this.silence(1);
       }
 
-      // Dấu cách: kết thúc một chữ cái.
-      // Vì trước đó dot/dash đã có silence 1 unit,
-      // nên thêm 2 units để tổng khoảng cách giữa chữ cái là 3 units.
       if (symbol === ' ') {
         await this.silence(2);
       }
 
-      // Dấu /: phân cách các từ.
-      // Vì trước đó dot/dash đã có silence 1 unit,
-      // nên thêm 6 units để tổng khoảng cách giữa từ là 7 units.
       if (symbol === '/') {
         await this.silence(6);
       }
+
+      this.currentIndex = i + 1;
     }
 
-    // Đảm bảo trạng thái cuối cùng là không còn phát
     this.playing = false;
+    this.isPaused = false;
+    this.currentIndex = morse.length;
+  }
+
+  async playMorse(morse: string) {
+    await this.playMorseFromIndex(morse, 0);
   }
 
   // Chuyển text sang Morse rồi phát
   async playText(text: string) {
-    // Ví dụ "SOS" → "... --- ..."
+    this.currentText = text;
     const morse = textToMorse(text);
+    await this.playMorseFromIndex(morse, 0);
+  }
 
-    // Phát chuỗi Morse vừa tạo
-    await this.playMorse(morse);
+  pause() {
+    this.isPaused = true;
+    this.stopRequested = false;
+    this.playing = false;
+
+    if (this.gain) {
+      this.gain.gain.value = 0;
+    }
+  }
+
+  resume() {
+    if (!this.currentMorse) {
+      return;
+    }
+
+    this.isPaused = false;
+
+    if (this.resumeResolver) {
+      this.resumeResolver();
+    }
+  }
+
+  restart() {
+    this.stopRequested = false;
+    this.isPaused = false;
+    this.currentIndex = 0;
+    this.playbackToken += 1;
+
+    if (this.currentText) {
+      this.playText(this.currentText);
+    }
   }
 
   // Dừng tiếng beep hiện tại
   stop() {
-    // Đánh dấu không còn phát
-    this.playing = false;
-
-    // Tắt volume ngay lập tức
-    if (this.gain) {
-      this.gain.gain.value = 0;
-    }
+    this.pause();
   }
 
   // Giải phóng audio resources khi không còn dùng engine

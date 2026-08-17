@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-community/slider": "^5.2.0",
     "@react-native/new-app-screen": "0.86.2",
     "@react-navigation/bottom-tabs": "^7.18.15",
     "@react-navigation/drawer": "^7.13.7",
@@ -25,7 +26,8 @@
     "react-native-screens": "^4.26.2",
     "react-native-sound": "^0.13.0",
     "react-native-vector-icons": "^10.3.0",
-    "react-native-worklets": "^0.11.3"
+    "react-native-worklets": "^0.11.3",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

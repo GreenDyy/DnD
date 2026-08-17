@@ -1531,6 +1531,11 @@
     prompts "^2.4.2"
     semver "^7.5.2"
 
+"@react-native-community/slider@^5.2.0":
+  version "5.2.0"
+  resolved "https://registry.npmjs.org/@react-native-community/slider/-/slider-5.2.0.tgz"
+  integrity sha512-484sH8aWEaSjxaZ7HT3YZ8CKDcNes2synko1vdEz5DFEdvKAduxKJTj22L/qBMD7rtIkfbX69DMzWDAGbOAV6w==
+
 "@react-native/assets-registry@0.86.2":
   version "0.86.2"
   resolved "https://registry.npmjs.org/@react-native/assets-registry/-/assets-registry-0.86.2.tgz"
@@ -6890,6 +6895,11 @@ yargs@^17.3.1, yargs@^17.6.2:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.1.1"
+
+yarn@^1.22.22:
+  version "1.22.22"
+  resolved "https://registry.npmjs.org/yarn/-/yarn-1.22.22.tgz"
+  integrity sha512-prL3kGtyG7o9Z9Sv8IPfBNrWTDmXB4Qbes8A9rEzt6wkJV8mUvoirjU0Mp3GGAU06Y0XQyA3/2/RQFVuK7MTfg==
 
 yocto-queue@^0.1.0:
   version "0.1.0"
