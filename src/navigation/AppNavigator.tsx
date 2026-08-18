@@ -6,6 +6,8 @@ import HomeScreen from '../screens/Home/HomeScreen';
 import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
+import AudioTestScreen from '../screens/Test/AudioTestScreen';
+import AudioTest2 from '../screens/Test/AudioTest2';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,6 +19,8 @@ function AppNavigator() {
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
       <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
+      <Stack.Screen name="AudioTest" component={AudioTestScreen} />
+      <Stack.Screen name="AudioTest2" component={AudioTest2} />
     </Stack.Navigator>
   );
 }

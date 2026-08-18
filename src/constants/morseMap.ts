@@ -36,4 +36,25 @@ export const MORSE_MAP: Record<string, string> = {
   '7': '--...',
   '8': '---..',
   '9': '----.',
+
+  '=': '-...-',
+  '+': '.-.-.',
+  '-': '-....-',
 };
+
+// hàm chuyển chữ thành mã Morse
+// ví dụ: "SOS" => "... --- ..."
+export function textToMorse(text: string): string {
+  return text
+    .toUpperCase()
+    .split('')
+    .map(char => {
+      if (char === ' ') {
+        return '/';
+      }
+
+      return MORSE_MAP[char] ?? '';
+    })
+    .filter(Boolean)
+    .join(' ');
+}
