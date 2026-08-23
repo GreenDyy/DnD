@@ -8,6 +8,8 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { PlaygroundStackParamList } from '../../../types/navigation';
 import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader } from 'lucide-react-native';
 import { colors } from '../../../theme/colors';
 import Button from '../../../components/Button/Button';
@@ -16,7 +18,7 @@ import { useLocalAI } from '../../../ai/useLocalAI';
 import knowledgeService from '../../../ai/KnowledgeService';
 
 function AIPlaygroundScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
   const { modelPath, progress, isReady, isLoading, error, prepare } =
     useLocalAI();
 

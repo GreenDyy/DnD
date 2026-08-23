@@ -25,6 +25,8 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     private static final String MODEL_ASSET_PATH =
             "models/" + MODEL_NAME;
 
+    private long modelHandle = 0;
+
     public LocalAIModule(ReactApplicationContext reactContext) {
         super(reactContext);
     }
@@ -32,6 +34,20 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     @Override
     public String getName() {
         return "LocalAI";
+    }
+
+    @ReactMethod
+    public void testNative(Promise promise) {
+        try {
+            long result = LlamaNative.testNative();
+            promise.resolve(result);
+        } catch (Exception e) {
+            promise.reject(
+                    "NATIVE_TEST_ERROR",
+                    e.getMessage(),
+                    e
+            );
+        }
     }
 
     @ReactMethod
@@ -146,6 +162,60 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
                 );
             }
         }).start();
+    }
+
+    @ReactMethod
+    public void loadModel(String modelPath, Promise promise) {
+        try {
+            if (modelPath == null || modelPath.isEmpty()) {
+                promise.reject(
+                        "INVALID_MODEL_PATH",
+                        "Model path is empty"
+                );
+                return;
+            }
+
+            if (modelHandle != 0) {
+                promise.resolve(true);
+                return;
+            }
+
+            modelHandle = LlamaNative.loadModel(modelPath);
+
+            if (modelHandle == 0) {
+                promise.reject(
+                        "MODEL_LOAD_FAILED",
+                        "Cannot load model"
+                );
+                return;
+            }
+
+            promise.resolve(true);
+
+        } catch (Exception e) {
+            promise.reject(
+                    "MODEL_LOAD_ERROR",
+                    e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    @ReactMethod
+    public void destroyModel(Promise promise) {
+        try {
+            if (modelHandle != 0) {
+                LlamaNative.freeModel(modelHandle);
+                modelHandle = 0;
+            }
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject(
+                    "MODEL_DESTROY_ERROR",
+                    e.getMessage(),
+                    e
+            );
+        }
     }
 
     private void sendProgress(int progress) {

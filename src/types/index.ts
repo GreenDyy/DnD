@@ -4,3 +4,8 @@ export type ApiError = {
 };
 
 export type Nullable<T> = T | null;
+
+export type {
+  RootStackParamList,
+  PlaygroundStackParamList,
+} from './navigation';

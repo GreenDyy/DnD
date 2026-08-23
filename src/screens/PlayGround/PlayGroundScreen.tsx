@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { PlaygroundStackParamList } from '../../types/navigation';
 import { ArrowLeft, Brain, Headphones, Radio, Camera } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
 
-const features = [
+const features: { title: string; desc: string; icon: any; color: string; screen: keyof PlaygroundStackParamList }[] = [
   {
     title: 'AI Model',
     desc: 'Test useLocalAI & KnowledgeService',
@@ -36,7 +38,7 @@ const features = [
 ];
 
 function PlayGroundScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
 
   return (
     <View style={styles.container}>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../types/navigation';
 
 import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -7,10 +8,8 @@ import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
 import PlaygroundNavigator from './PlaygroundNavigator';
-import AudioTestScreen from '../screens/Test/AudioTestScreen';
-import AudioTest2 from '../screens/Test/AudioTest2';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function AppNavigator() {
   return (
@@ -21,8 +20,6 @@ function AppNavigator() {
       <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="Playground" component={PlaygroundNavigator} />
-      <Stack.Screen name="AudioTest" component={AudioTestScreen} />
-      <Stack.Screen name="AudioTest2" component={AudioTest2} />
     </Stack.Navigator>
   );
 }

@@ -2,24 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, Button, TextInput, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 
-import { morseAudio } from '../../audio/MorseAudioEngine';
-import { textToMorse } from '../../constants/morseMap';
+import { morseAudio } from '../../../audio/MorseAudioEngine';
+import { textToMorse } from '../../../constants/morseMap';
 import { styles } from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type CharacterType } from '../../utils/morseGenerator';
+import { type CharacterType } from '../../../utils/morseGenerator';
+import type { PlaygroundStackParamList } from '../../../types/navigation';
 
-export default function AudioTest2() {
-  type RootStackParamList = {
-    AudioTest2: {
-      frequency: number;
-      wpm: number;
-      groupCount: number;
-      characterType: CharacterType;
-    };
-  };
+export default function AudioPlaygroundScreen() {
   const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
 
   const [text, setText] = useState('SOS');
   const [frequency, setFrequency] = useState(600);
@@ -43,7 +36,7 @@ export default function AudioTest2() {
   };
 
   const handlerMorseBoardGenerate = () => {
-    navigation.navigate('AudioTest2', {
+    navigation.navigate('AudioTest2Screen', {
       frequency: frequency,
       wpm: wpm,
       groupCount: groupCount,
@@ -65,14 +58,6 @@ export default function AudioTest2() {
       <Text>Morse: {textToMorse(text)}</Text>
 
       <Text style={styles.label}>Frequency (Hz)</Text>
-
-      {/* <TextInput
-        value={frequency}
-        onChangeText={setFrequency}
-        keyboardType="numeric"
-        placeholder="Nhập tần số, ví dụ 600"
-        style={styles.input}
-      /> */}
 
       <Text style={styles.label}>Frequency: {frequency} Hz</Text>
 
@@ -105,13 +90,6 @@ export default function AudioTest2() {
         <Text>5 WPM</Text>
         <Text>100 WPM</Text>
       </View>
-      {/* <TextInput
-        value={wpm}
-        onChangeText={setWpm}
-        keyboardType="numeric"
-        placeholder="Nhập WPM, ví dụ 20"
-        style={styles.input}
-      /> */}
 
       <Text style={styles.label}>Chọn loại ký tự</Text>
       <Text style={styles.label}>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { NativeModules, NativeEventEmitter } from 'react-native';
 
-const { LocalAI } = NativeModules;
-const eventEmitter = new NativeEventEmitter(LocalAI);
+const LocalAI = NativeModules.LocalAI;
+const eventEmitter = LocalAI ? new NativeEventEmitter(LocalAI) : null;
 
 interface UseLocalAIResult {
   modelPath: string | null;
@@ -11,6 +11,7 @@ interface UseLocalAIResult {
   isLoading: boolean;
   error: string | null;
   prepare: () => Promise<void>;
+  testNative: () => Promise<number>;
 }
 
 export function useLocalAI(): UseLocalAIResult {
@@ -21,6 +22,11 @@ export function useLocalAI(): UseLocalAIResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!eventEmitter) {
+      setError('LocalAI native module is not available. Rebuild the app and restart it.');
+      return;
+    }
+
     const subscription = eventEmitter.addListener(
       'MODEL_COPY_PROGRESS',
       (event: { progress: number }) => {
@@ -33,6 +39,10 @@ export function useLocalAI(): UseLocalAIResult {
 
   const prepare = useCallback(async () => {
     try {
+      if (!LocalAI) {
+        throw new Error('LocalAI native module is not registered or not ready yet.');
+      }
+
       setIsLoading(true);
       setError(null);
       setProgress(0);
@@ -41,10 +51,19 @@ export function useLocalAI(): UseLocalAIResult {
       setModelPath(path);
       setIsReady(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to prepare model');
+      setError(err?.message || 'Failed to prepare model');
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  const testNative = useCallback(async (): Promise<number> => {
+    if (!LocalAI) {
+      throw new Error('LocalAI native module is not registered or not ready yet.');
+    }
+
+    const result = await LocalAI.testNative();
+    return result;
   }, []);
 
   return {
@@ -54,5 +73,6 @@ export function useLocalAI(): UseLocalAIResult {
     isLoading,
     error,
     prepare,
+    testNative,
   };
 }

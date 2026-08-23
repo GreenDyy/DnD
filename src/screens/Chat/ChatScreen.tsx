@@ -12,6 +12,8 @@ import {
 import { colors } from '../../theme/colors';
 import { ArrowLeft, Send } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../types/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { knowledgeService } from '../../ai';
 
@@ -22,7 +24,7 @@ interface Message {
 }
 
 function ChatScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([
     {

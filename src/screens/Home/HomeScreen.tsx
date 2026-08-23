@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../types/navigation';
 import HomeCard from '../../components/HomeCard';
 
 const cards = [
@@ -13,7 +15,7 @@ const cards = [
 ];
 
 function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={styles.container}>
@@ -38,7 +40,9 @@ function HomeScreen() {
           <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu Morse</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, styles.orangeCard]}>
+        <TouchableOpacity style={[styles.card, styles.orangeCard]}
+          onPress={() => navigation.navigate('Playground')}
+        >
           <Text style={styles.badge}>TEST</Text>
           <Text style={styles.cardTitle}>Playground</Text>
           <Text style={styles.cardDesc}>Thử tốc độ và chế độ phát</Text>
