@@ -19,7 +19,7 @@ import knowledgeService from '../../../ai/KnowledgeService';
 
 function AIPlaygroundScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
-  const { modelPath, progress, isReady, isLoading, error, prepare } =
+  const { modelPath, progress, isReady, isLoading, error, prepare, testNative } =
     useLocalAI();
 
   const [query, setQuery] = useState('');
@@ -27,6 +27,15 @@ function AIPlaygroundScreen() {
 
   const handlePrepareModel = async () => {
     await prepare();
+  };
+
+  const handleTestNative = async () => {
+    try {
+      const result = await testNative();
+      Alert.alert('Native test', `Result: ${result}`);
+    } catch (err: any) {
+      Alert.alert('Native test failed', err?.message || 'Native call failed');
+    }
   };
 
   const handleTestKnowledge = () => {
@@ -130,6 +139,12 @@ function AIPlaygroundScreen() {
             <RefreshCw size={16} color={colors.primary} />
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
+
+          <Button
+            title="Test Native"
+            onPress={handleTestNative}
+            style={{ marginTop: 12 }}
+          />
         </View>
 
         <View style={styles.divider} />

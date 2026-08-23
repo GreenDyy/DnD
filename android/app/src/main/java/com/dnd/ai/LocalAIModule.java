@@ -40,7 +40,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     public void testNative(Promise promise) {
         try {
             long result = LlamaNative.testNative();
-            promise.resolve(result);
+            promise.resolve((double) result);
         } catch (Exception e) {
             promise.reject(
                     "NATIVE_TEST_ERROR",

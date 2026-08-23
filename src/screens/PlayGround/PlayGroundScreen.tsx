@@ -20,21 +20,7 @@ const features: { title: string; desc: string; icon: any; color: string; screen:
     icon: Headphones,
     color: '#EAFBF0',
     screen: 'AudioPlaygroundScreen',
-  },
-  {
-    title: 'MQTT',
-    desc: 'Test MQTT connection',
-    icon: Radio,
-    color: '#F3E8FF',
-    screen: 'MQTTPlaygroundScreen',
-  },
-  {
-    title: 'Camera',
-    desc: 'Test camera features',
-    icon: Camera,
-    color: '#FFF4E5',
-    screen: 'CameraPlaygroundScreen',
-  },
+  }
 ];
 
 function PlayGroundScreen() {
