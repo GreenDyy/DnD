@@ -14,16 +14,19 @@ import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader } from 'lucide-react
 import { colors } from '../../../theme/colors';
 import Button from '../../../components/Button/Button';
 import Input from '../../../components/Input/Input';
-import { useLocalAI } from '../../../ai/useLocalAI';
+import { useLocalAI } from '../../../hooks';
 import knowledgeService from '../../../ai/KnowledgeService';
 
 function AIPlaygroundScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
-  const { modelPath, progress, isReady, isLoading, error, prepare, testNative } =
+  const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate, testNative } =
     useLocalAI();
 
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [prompt, setPrompt] = useState('Xin chào, tôi muốn học báo vụ. Bạn có thể giúp tôi không?');
+  const [generatedText, setGeneratedText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handlePrepareModel = async () => {
     await prepare();
@@ -35,6 +38,41 @@ function AIPlaygroundScreen() {
       Alert.alert('Native test', `Result: ${result}`);
     } catch (err: any) {
       Alert.alert('Native test failed', err?.message || 'Native call failed');
+    }
+  };
+
+  const handleLoadModel = async () => {
+    if (!modelPath) {
+      Alert.alert('Load model failed', 'Prepare the model first');
+      return;
+    }
+
+    try {
+      await loadModel(modelPath);
+      Alert.alert('Load model', 'Model loaded successfully');
+    } catch (err: any) {
+      Alert.alert('Load model failed', err?.message || 'Cannot load model');
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!modelPath) {
+      Alert.alert('Generate failed', 'Prepare and load the model first');
+      return;
+    }
+    if (!prompt.trim()) {
+      Alert.alert('Generate failed', 'Enter a prompt first');
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      setGeneratedText(await generate(prompt.trim(), 32));
+    } catch (err: any) {
+      Alert.alert('Generate failed', err?.message || 'Cannot generate text');
+    } finally {
+      setIsGenerating(false);
+      setPrompt('');
     }
   };
 
@@ -73,6 +111,20 @@ function AIPlaygroundScreen() {
             <View style={styles.statusRow}>
               <Text style={styles.label}>Status</Text>
               <View style={styles.statusBadge}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    {
+                      backgroundColor: isReady
+                        ? colors.success
+                        : isLoading
+                        ? '#F59E0B'
+                        : error
+                        ? colors.error
+                        : colors.textSecondary,
+                    },
+                  ]}
+                />
                 {isLoading ? (
                   <Loader size={14} color="#F59E0B" />
                 ) : isReady ? (
@@ -108,6 +160,7 @@ function AIPlaygroundScreen() {
                 <Text style={styles.progressPct}>{progress}%</Text>
               </View>
             )}
+            
 
             {modelPath && (
               <View style={styles.statusRow}>
@@ -145,6 +198,34 @@ function AIPlaygroundScreen() {
             onPress={handleTestNative}
             style={{ marginTop: 12 }}
           />
+
+          <Button
+            title="Load Model"
+            onPress={handleLoadModel}
+            disabled={!modelPath || isLoading}
+            style={{ marginTop: 12 }}
+          />
+
+          <Input
+            label="Prompt"
+            placeholder="Ask the local model something"
+            value={prompt}
+            onChangeText={setPrompt}
+          />
+
+          <Button
+            title={isGenerating ? 'Generating...' : 'Generate'}
+            onPress={handleGenerate}
+            disabled={!modelPath || isLoading || isGenerating}
+            style={{ marginTop: 12 }}
+          />
+
+          {generatedText ? (
+            <View style={styles.resultCard}>
+              <Text style={styles.resultLabel}>Output:</Text>
+              <Text style={styles.resultAnswer}>{generatedText}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.divider} />
@@ -260,6 +341,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   statusText: {
     fontSize: 14,

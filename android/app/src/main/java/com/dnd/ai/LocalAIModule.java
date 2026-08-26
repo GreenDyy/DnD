@@ -3,6 +3,7 @@ package com.dnd.ai;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -18,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class LocalAIModule extends ReactContextBaseJavaModule {
+
+    private static final String TAG = "LocalAI";
 
     private static final String MODEL_NAME =
             "Qwen3-1.7B-Q8_0.gguf";
@@ -216,6 +219,29 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
                     e
             );
         }
+    }
+
+    @ReactMethod
+    public void generate(String prompt, int maxTokens, Promise promise) {
+        Log.i(TAG, "generate requested, prompt length=" + (prompt == null ? 0 : prompt.length()));
+        if (modelHandle == 0) {
+            promise.reject("MODEL_NOT_LOADED", "Load the model before generating text");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                Log.i(TAG, "calling native generate");
+                String result = LlamaNative.generate(modelHandle, prompt, maxTokens);
+                Log.i(TAG, "native generate returned, output length=" + (result == null ? 0 : result.length()));
+                Log.i(TAG, "Value: " + result);
+
+                promise.resolve(result);
+            } catch (Exception e) {
+                Log.e(TAG, "native generate failed", e);
+                promise.reject("GENERATION_ERROR", e.getMessage(), e);
+            }
+        }).start();
     }
 
     private void sendProgress(int progress) {
