@@ -26,6 +26,7 @@ function AIPlaygroundScreen() {
   const [result, setResult] = useState<any>(null);
   const [prompt, setPrompt] = useState('Xin chào, tôi muốn học báo vụ. Bạn có thể giúp tôi không?');
   const [generatedText, setGeneratedText] = useState('');
+  const [maxTokens, setMaxTokens] = useState(128);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handlePrepareModel = async () => {
@@ -67,7 +68,7 @@ function AIPlaygroundScreen() {
 
     try {
       setIsGenerating(true);
-      setGeneratedText(await generate(prompt.trim(), 96));
+      setGeneratedText(await generate(prompt.trim(), parseInt(maxTokens)));
     } catch (err: any) {
       Alert.alert('Generate failed', err?.message || 'Cannot generate text');
     } finally {
@@ -118,10 +119,10 @@ function AIPlaygroundScreen() {
                       backgroundColor: isReady
                         ? colors.success
                         : isLoading
-                        ? '#F59E0B'
-                        : error
-                        ? colors.error
-                        : colors.textSecondary,
+                          ? '#F59E0B'
+                          : error
+                            ? colors.error
+                            : colors.textSecondary,
                     },
                   ]}
                 />
@@ -139,10 +140,10 @@ function AIPlaygroundScreen() {
                       color: isReady
                         ? colors.success
                         : isLoading
-                        ? '#F59E0B'
-                        : error
-                        ? colors.error
-                        : colors.textSecondary,
+                          ? '#F59E0B'
+                          : error
+                            ? colors.error
+                            : colors.textSecondary,
                     },
                   ]}>
                   {isReady ? 'Ready' : isLoading ? 'Loading...' : error ? 'Error' : 'Idle'}
@@ -160,7 +161,7 @@ function AIPlaygroundScreen() {
                 <Text style={styles.progressPct}>{progress}%</Text>
               </View>
             )}
-            
+
 
             {modelPath && (
               <View style={styles.statusRow}>
