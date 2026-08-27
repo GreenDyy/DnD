@@ -23,7 +23,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     private static final String TAG = "LocalAI";
 
     private static final String MODEL_NAME =
-            "Qwen3-1.7B-Q8_0.gguf";
+            "qwen2.5-1.5b-instruct-q4_k_m.gguf";
 
     private static final String MODEL_ASSET_PATH =
             "models/" + MODEL_NAME;

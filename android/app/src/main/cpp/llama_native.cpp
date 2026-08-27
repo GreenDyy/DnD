@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <string>
+#include <thread>
 #include <vector>
 
 static constexpr const char* LOCAL_AI_TAG = "LocalAI";
@@ -82,10 +83,51 @@ Java_com_dnd_ai_LlamaNative_generate(
 
     const char* promptText = env->GetStringUTFChars(prompt, nullptr);
     LOCAL_AI_LOG("generate: prompt length=%zu", std::string(promptText).size());
+        const std::string userPrompt(promptText);
+        env->ReleaseStringUTFChars(prompt, promptText);
+
+        const std::string systemPrompt =
+            "Bạn là trợ lý AI thân thiện. Hãy trả lời trực tiếp như đang trò chuyện "
+            "với người dùng. Không viết nội dung website, không tự thêm tiêu đề "
+            "hay hướng dẫn không được yêu cầu.";
+        const llama_chat_message messages[] = {
+            {"system", systemPrompt.c_str()},
+            {"user", userPrompt.c_str()},
+        };
+        const char* chatTemplate = llama_model_chat_template(model, nullptr);
+        std::string formattedPrompt;
+
+        if (chatTemplate != nullptr && chatTemplate[0] != '\0') {
+        const int32_t requiredSize = llama_chat_apply_template(
+            chatTemplate, messages, 2, true, nullptr, 0);
+        if (requiredSize > 0) {
+            std::vector<char> formattedBuffer(static_cast<size_t>(requiredSize) + 1);
+            const int32_t formattedSize = llama_chat_apply_template(
+                chatTemplate,
+                messages,
+                2,
+                true,
+                formattedBuffer.data(),
+                static_cast<int32_t>(formattedBuffer.size()));
+            if (formattedSize > 0) {
+            formattedPrompt.assign(formattedBuffer.data(),
+                static_cast<size_t>(formattedSize));
+            }
+        }
+        }
+
+        if (formattedPrompt.empty()) {
+        formattedPrompt =
+            "<|im_start|>system\n" + systemPrompt +
+            "<|im_end|>\n<|im_start|>user\n" + userPrompt +
+            "<|im_end|>\n<|im_start|>assistant\n";
+        }
+
+        LOCAL_AI_LOG("generate: formatted prompt length=%zu", formattedPrompt.size());
     const llama_vocab* vocab = llama_model_get_vocab(model);
-    const int32_t promptLength = static_cast<int32_t>(std::string(promptText).size());
+        const int32_t promptLength = static_cast<int32_t>(formattedPrompt.size());
     int32_t tokenCount = llama_tokenize(
-            vocab, promptText, promptLength, nullptr, 0, true, false);
+            vocab, formattedPrompt.c_str(), promptLength, nullptr, 0, true, true);
 
     if (tokenCount < 0) {
         tokenCount = -tokenCount;
@@ -93,23 +135,30 @@ Java_com_dnd_ai_LlamaNative_generate(
     LOCAL_AI_LOG("generate: prompt tokens=%d", tokenCount);
 
     if (tokenCount == 0) {
-        env->ReleaseStringUTFChars(prompt, promptText);
         return env->NewStringUTF("");
     }
 
     std::vector<llama_token> promptTokens(static_cast<size_t>(tokenCount));
     llama_tokenize(
-            vocab, promptText, promptLength, promptTokens.data(), tokenCount, true, false);
-    env->ReleaseStringUTFChars(prompt, promptText);
+            vocab,
+            formattedPrompt.c_str(),
+            promptLength,
+            promptTokens.data(),
+            tokenCount,
+            true,
+            true);
 
     llama_context_params contextParams = llama_context_default_params();
-        const int tokenLimit = maxTokens > 0 ? maxTokens : 32;
+        const int tokenLimit = maxTokens > 0 ? maxTokens : 128;
         contextParams.n_ctx = static_cast<uint32_t>(
             std::max<size_t>(512, promptTokens.size() + tokenLimit + 1));
         contextParams.n_batch = static_cast<uint32_t>(
             std::min<size_t>(128, promptTokens.size()));
-        contextParams.n_threads = 6;
-        contextParams.n_threads_batch = 6;
+        const unsigned int cpuThreads = std::thread::hardware_concurrency();
+        const int inferenceThreads = static_cast<int>(
+            std::clamp(cpuThreads == 0 ? 4u : cpuThreads, 2u, 6u));
+        contextParams.n_threads = inferenceThreads;
+        contextParams.n_threads_batch = inferenceThreads;
     llama_context* context = llama_init_from_model(model, contextParams);
     if (context == nullptr) {
         LOCAL_AI_LOG("generate: context creation failed");

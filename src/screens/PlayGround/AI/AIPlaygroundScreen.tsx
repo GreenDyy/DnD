@@ -67,7 +67,7 @@ function AIPlaygroundScreen() {
 
     try {
       setIsGenerating(true);
-      setGeneratedText(await generate(prompt.trim(), 32));
+      setGeneratedText(await generate(prompt.trim(), 96));
     } catch (err: any) {
       Alert.alert('Generate failed', err?.message || 'Cannot generate text');
     } finally {
