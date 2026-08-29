@@ -229,7 +229,7 @@ function ChatScreen() {
             style={styles.input}
             value={input}
             onChangeText={setInput}
-            placeholder={isReady ? 'Nhập tin nhắn...' : 'Đang tải model...'}
+            placeholder={isReady ? 'Nhập câu hỏi của bạn...' : 'Đang tải model...'}
             placeholderTextColor={colors.textSecondary}
             editable={!isGenerating && !isLoading}
             onSubmitEditing={handleSend}
