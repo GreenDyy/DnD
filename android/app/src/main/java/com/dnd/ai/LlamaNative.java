@@ -12,5 +12,10 @@ public class LlamaNative {
 
     public static native void freeModel(long modelHandle);
 
-    public static native String generate(long modelHandle, String prompt, int maxTokens);
+        public static native String generate(
+            long modelHandle,
+            String systemPrompt,
+            String prompt,
+            int maxTokens
+        );
 }

@@ -14,13 +14,14 @@ import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader } from 'lucide-react
 import { colors } from '../../../theme/colors';
 import Button from '../../../components/Button/Button';
 import Input from '../../../components/Input/Input';
-import { useLocalAI } from '../../../hooks';
+import { useLocalAIStore } from '../../../store';
 import knowledgeService from '../../../ai/KnowledgeService';
+import { LOCAL_AI_SYSTEM_PROMPT } from '../../../ai/prompts';
 
 function AIPlaygroundScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
   const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate, testNative } =
-    useLocalAI();
+    useLocalAIStore();
 
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<any>(null);
@@ -68,7 +69,9 @@ function AIPlaygroundScreen() {
 
     try {
       setIsGenerating(true);
-      setGeneratedText(await generate(prompt.trim(), parseInt(maxTokens)));
+      setGeneratedText(
+        await generate(LOCAL_AI_SYSTEM_PROMPT, prompt.trim(), maxTokens),
+      );
     } catch (err: any) {
       Alert.alert('Generate failed', err?.message || 'Cannot generate text');
     } finally {

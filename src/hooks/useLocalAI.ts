@@ -13,7 +13,7 @@ interface UseLocalAIResult {
   prepare: () => Promise<string>;
   loadModel: (path: string) => Promise<boolean>;
   initialize: () => Promise<void>;
-  generate: (prompt: string, maxTokens?: number) => Promise<string>;
+  generate: (systemPrompt: string, prompt: string, maxTokens?: number) => Promise<string>;
   testNative: () => Promise<number>;
 }
 
@@ -89,12 +89,16 @@ export function useLocalAI(): UseLocalAIResult {
     }
   }, [loadModel, prepare]);
 
-  const generate = useCallback(async (prompt: string, maxTokens = 128): Promise<string> => {
+  const generate = useCallback(async (
+    systemPrompt: string,
+    prompt: string,
+    maxTokens = 128,
+  ): Promise<string> => {
     if (!LocalAI) {
       throw new Error('LocalAI native module is not registered or not ready yet.');
     }
 
-    return LocalAI.generate(prompt, maxTokens);
+    return LocalAI.generate(systemPrompt, prompt, maxTokens);
   }, []);
 
   return {

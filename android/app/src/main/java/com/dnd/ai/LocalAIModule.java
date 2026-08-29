@@ -222,7 +222,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void generate(String prompt, int maxTokens, Promise promise) {
+    public void generate(String systemPrompt, String prompt, int maxTokens, Promise promise) {
         Log.i(TAG, "generate requested, prompt length=" + (prompt == null ? 0 : prompt.length()));
         if (modelHandle == 0) {
             promise.reject("MODEL_NOT_LOADED", "Load the model before generating text");
@@ -232,7 +232,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
         new Thread(() -> {
             try {
                 Log.i(TAG, "calling native generate");
-                String result = LlamaNative.generate(modelHandle, prompt, maxTokens);
+                String result = LlamaNative.generate(modelHandle, systemPrompt, prompt, maxTokens);
                 Log.i(TAG, "native generate returned, output length=" + (result == null ? 0 : result.length()));
                 Log.i(TAG, "Value: " + result);
 

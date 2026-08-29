@@ -72,47 +72,25 @@ Java_com_dnd_ai_LlamaNative_generate(
         JNIEnv* env,
         jclass clazz,
         jlong modelHandle,
+        jstring systemPrompt,
         jstring prompt,
         jint maxTokens
 ) {
     LOCAL_AI_LOG("generate: start handle=%lld maxTokens=%d", static_cast<long long>(modelHandle), maxTokens);
     auto* model = reinterpret_cast<llama_model*>(modelHandle);
-    if (model == nullptr || prompt == nullptr) {
+    if (model == nullptr || systemPrompt == nullptr || prompt == nullptr) {
         return env->NewStringUTF("");
     }
 
-    const char* promptText = env->GetStringUTFChars(prompt, nullptr);
-    LOCAL_AI_LOG("generate: prompt length=%zu", std::string(promptText).size());
-        const std::string userPrompt(promptText);
-        env->ReleaseStringUTFChars(prompt, promptText);
-
-        const std::string systemPrompt =
-            "Bạn là AI giáo viên chuyên đào tạo báo vụ Morse, có nhiệm vụ hỗ trợ "
-            "người học luyện tập và nâng cao kỹ năng báo vụ.\n\n"
-            "Bạn tập trung vào các nội dung:\n"
-            "- Bảng mã Morse quốc tế.\n"
-            "- 26 chữ cái và 10 chữ số.\n"
-            "- Kỹ thuật thu, ghi và phát tín hiệu Morse.\n"
-            "- Phân biệt tín hiệu tích và tè.\n"
-            "- Luyện nghe, nhận biết và ghi lại ký tự Morse.\n"
-            "- Kỹ thuật thu ghi nước chảy.\n"
-            "- Luyện tập tốc độ và độ chính xác.\n"
-            "- Giải thích các lỗi thường gặp khi học và thực hành báo vụ.\n\n"
-            "Nguyên tắc giảng dạy:\n"
-            "- Giải thích dễ hiểu, ngắn gọn và phù hợp với trình độ người học.\n"
-            "- Khi người học trả lời sai, chỉ ra lỗi, giải thích vì sao sai và đưa ra cách sửa.\n"
-            "- Khi phù hợp, đưa ra ví dụ hoặc bài tập ngắn để người học luyện tập.\n"
-            "- Ưu tiên tương tác theo kiểu giáo viên - học viên, không chỉ đưa ra đáp án.\n"
-            "- Không tự ý mở rộng ngoài phạm vi báo vụ nếu người học không yêu cầu.\n"
-            "- Không bịa thông tin. Nếu không chắc chắn, hãy nói rõ.\n\n"
-            "Phong cách giao tiếp:\n"
-            "- Thân thiện, tự nhiên như giáo viên đang trực tiếp hướng dẫn học viên.\n"
-            "- Trả lời trực tiếp câu hỏi của người dùng.\n"
-            "- Không tự thêm tiêu đề, mục lục hoặc nội dung dài nếu không được yêu cầu.\n"
-            "- Không viết nội dung website hoặc quảng cáo.\n"
-            "- Không biến mọi câu hỏi thành một bài giảng dài.";
+    const char* systemPromptText = env->GetStringUTFChars(systemPrompt, nullptr);
+    const char* userPromptText = env->GetStringUTFChars(prompt, nullptr);
+    LOCAL_AI_LOG("generate: prompt length=%zu", std::string(userPromptText).size());
+    const std::string systemPromptValue(systemPromptText);
+    const std::string userPrompt(userPromptText);
+    env->ReleaseStringUTFChars(systemPrompt, systemPromptText);
+    env->ReleaseStringUTFChars(prompt, userPromptText);
         const llama_chat_message messages[] = {
-            {"system", systemPrompt.c_str()},
+            {"system", systemPromptValue.c_str()},
             {"user", userPrompt.c_str()},
         };
         const char* chatTemplate = llama_model_chat_template(model, nullptr);
@@ -139,7 +117,7 @@ Java_com_dnd_ai_LlamaNative_generate(
 
         if (formattedPrompt.empty()) {
         formattedPrompt =
-            "<|im_start|>system\n" + systemPrompt +
+            "<|im_start|>system\n" + systemPromptValue +
             "<|im_end|>\n<|im_start|>user\n" + userPrompt +
             "<|im_end|>\n<|im_start|>assistant\n";
         }
@@ -171,10 +149,19 @@ Java_com_dnd_ai_LlamaNative_generate(
 
     llama_context_params contextParams = llama_context_default_params();
         const int tokenLimit = maxTokens > 0 ? maxTokens : 128;
+        const int maxCtx = 2048;  // Safe context window for small models
+
+        // Safety: truncate tokens if prompt + output exceeds context
+        int32_t usableTokens = tokenCount;
+        if (tokenCount + tokenLimit + 1 > maxCtx) {
+            usableTokens = maxCtx - tokenLimit - 1;
+            LOCAL_AI_LOG("generate: truncating prompt from %d to %d tokens", tokenCount, usableTokens);
+        }
+
         contextParams.n_ctx = static_cast<uint32_t>(
-            std::max<size_t>(512, promptTokens.size() + tokenLimit + 1));
+            std::max<size_t>(512, usableTokens + tokenLimit + 1));
         contextParams.n_batch = static_cast<uint32_t>(
-            std::min<size_t>(128, promptTokens.size()));
+            std::max<size_t>(512, std::min<size_t>(usableTokens, 1024)));
         const unsigned int cpuThreads = std::thread::hardware_concurrency();
         const int inferenceThreads = static_cast<int>(
             std::clamp(cpuThreads == 0 ? 4u : cpuThreads, 2u, 6u));
@@ -185,14 +172,19 @@ Java_com_dnd_ai_LlamaNative_generate(
         LOCAL_AI_LOG("generate: context creation failed");
         return env->NewStringUTF("");
     }
-    LOCAL_AI_LOG("generate: context created");
+    LOCAL_AI_LOG("generate: context created n_ctx=%d n_batch=%d", contextParams.n_ctx, contextParams.n_batch);
 
-    llama_batch promptBatch = llama_batch_get_one(
-            promptTokens.data(), static_cast<int32_t>(promptTokens.size()));
-    if (llama_decode(context, promptBatch) != 0) {
-        LOCAL_AI_LOG("generate: prompt decode failed");
-        llama_free(context);
-        return env->NewStringUTF("");
+    // Decode prompt in chunks of n_batch
+    const int32_t batchSize = static_cast<int32_t>(contextParams.n_batch);
+    for (int32_t i = 0; i < usableTokens; i += batchSize) {
+        const int32_t chunkSize = std::min(batchSize, usableTokens - i);
+        llama_batch promptBatch = llama_batch_get_one(
+                promptTokens.data() + i, chunkSize);
+        if (llama_decode(context, promptBatch) != 0) {
+            LOCAL_AI_LOG("generate: prompt decode failed at offset=%d", i);
+            llama_free(context);
+            return env->NewStringUTF("");
+        }
     }
     LOCAL_AI_LOG("generate: prompt decoded");
 
