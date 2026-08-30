@@ -13,6 +13,10 @@ export interface MorseBoard {
   morse: string[];
 }
 
+// giới hạn bảng điện
+export const MIN_GROUP_COUNT = 1;
+export const MAX_GROUP_COUNT = 120;
+
 // các ký tự có thể xuất hiện trong bảng điện
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -55,8 +59,9 @@ function generateGroup(pool: string, length: number): string {
 
 // Tạo một bảng điện Morse dựa trên cấu hình được cung cấp
 export function generateMorseBoard(config: MorseBoardConfig): MorseBoard {
-  const pool = getCharacterPool(config.characterType);
+  validateMorseBoardConfig(config);
 
+  const pool = getCharacterPool(config.characterType);
   const generatedGroups: string[] = [];
 
   for (let i = 0; i < config.groupCount; i++) {
@@ -70,4 +75,32 @@ export function generateMorseBoard(config: MorseBoardConfig): MorseBoard {
     groups,
     morse: groups.map(group => group),
   };
+}
+
+// Kiểm tra tính hợp lệ của cấu hình bảng điện
+function validateMorseBoardConfig(config: MorseBoardConfig): void {
+  if (
+    !Number.isSafeInteger(config.groupCount) ||
+    config.groupCount < MIN_GROUP_COUNT ||
+    config.groupCount > MAX_GROUP_COUNT
+  ) {
+    throw new Error(
+      `Số nhóm phải là số nguyên từ ${MIN_GROUP_COUNT} đến ${MAX_GROUP_COUNT}. ` +
+        `Giá trị nhận được: ${config.groupCount}`,
+    );
+  }
+
+  if (
+    config.characterType !== 'letter' &&
+    config.characterType !== 'number' &&
+    config.characterType !== 'mixed'
+  ) {
+    throw new Error(`Loại ký tự không hợp lệ: ${config.characterType}`);
+  }
+}
+
+export function generatePracticeText(config: MorseBoardConfig): string {
+  const board = generateMorseBoard(config);
+
+  return board.groups.slice(1, -1).join(' ');
 }
