@@ -20,7 +20,7 @@ import { LOCAL_AI_SYSTEM_PROMPT } from '../../../ai/prompts';
 
 function AIPlaygroundScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
-  const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate, testNative } =
+  const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate } =
     useLocalAIStore();
 
   const [query, setQuery] = useState('');
@@ -32,15 +32,6 @@ function AIPlaygroundScreen() {
 
   const handlePrepareModel = async () => {
     await prepare();
-  };
-
-  const handleTestNative = async () => {
-    try {
-      const result = await testNative();
-      Alert.alert('Native test', `Result: ${result}`);
-    } catch (err: any) {
-      Alert.alert('Native test failed', err?.message || 'Native call failed');
-    }
   };
 
   const handleLoadModel = async () => {
@@ -196,12 +187,6 @@ function AIPlaygroundScreen() {
             <RefreshCw size={16} color={colors.primary} />
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
-
-          <Button
-            title="Test Native"
-            onPress={handleTestNative}
-            style={{ marginTop: 12 }}
-          />
 
           <Button
             title="Load Model"

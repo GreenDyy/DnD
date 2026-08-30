@@ -14,7 +14,6 @@ interface LocalAIState {
   loadModel: (path: string) => Promise<boolean>;
   initialize: () => Promise<void>;
   generate: (systemPrompt: string, prompt: string, maxTokens?: number) => Promise<string>;
-  testNative: () => Promise<number>;
 }
 
 let initializationPromise: Promise<void> | null = null;
@@ -100,13 +99,6 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
     return result;
   },
 
-  testNative: async () => {
-    if (!LocalAI) {
-      throw new Error('LocalAI native module is not registered or not ready yet.');
-    }
-
-    return LocalAI.testNative();
-  },
 }));
 
 if (eventEmitter) {

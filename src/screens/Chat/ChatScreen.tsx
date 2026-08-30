@@ -21,7 +21,7 @@ import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
 import TypingIndicator from '../../components/TypingIndicator';
 import { images } from '../../assets';
-import { AI_NAME } from '../../constants';
+import { AI_NAME, REPLIES } from '../../constants';
 
 interface Message {
   id: string;
@@ -79,7 +79,7 @@ function ChatScreen() {
       setMessages(prev =>
         prev.map(m =>
           m.id === '1'
-            ? { ...m, text: 'Xin chào! Mình là Mori, trợ lý AI báo vụ. Hãy hỏi mình về mã Morse!' }
+            ? { ...m, text: REPLIES.MODEL_LOADING }
             : m,
         ),
       );
@@ -87,7 +87,7 @@ function ChatScreen() {
       setMessages(prev =>
         prev.map(m =>
           m.id === '1'
-            ? { ...m, text: 'Không thể tải model. Vui lòng thử lại.' }
+            ? { ...m, text: REPLIES.MODEL_ERROR }
             : m,
         ),
       );
@@ -117,7 +117,7 @@ function ChatScreen() {
 
       if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
-          reply = 'Mình là Mori AI, trợ lý chuyên về học báo vụ Morse. Mình chỉ có thể hỗ trợ bạn về mã Morse và kỹ thuật báo vụ thôi nhé! Bạn có muốn hỏi gì về Morse không?';
+          reply = REPLIES.OUT_OF_SCOPE;
         } else {
           const context = knowledgeService.getContext(text);
           let fullPrompt = `Context từ knowledge base:\n${context}\n\nCâu hỏi của người dùng: ${text}`;
@@ -139,7 +139,7 @@ function ChatScreen() {
             reply = `⚠️ ${budget.message}`;
           } else {
             reply = await generate(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
-            reply = reply.trim() || 'Xin lỗi, mình không thể trả lời lúc này.';
+            reply = reply.trim() || REPLIES.GENERATE_ERROR;
           }
         }
       } else {
