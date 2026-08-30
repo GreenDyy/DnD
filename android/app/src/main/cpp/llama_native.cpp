@@ -218,12 +218,3 @@ Java_com_dnd_ai_LlamaNative_generate(
     LOCAL_AI_LOG("generate: finished output bytes=%zu", output.size());
     return env->NewStringUTF(output.c_str());
 }
-
-extern "C"
-JNIEXPORT jlong JNICALL
-Java_com_dnd_ai_LlamaNative_testNative(
-        JNIEnv* env,
-        jclass clazz
-) {
-    return 12345;
-}

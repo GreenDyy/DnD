@@ -1,117 +1,178 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from "../../theme";
-import MorsePlayer from "../../audio/MorsePlayer";
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { ArrowLeft, Volume2 } from 'lucide-react-native';
+import { colors } from '../../theme/colors';
+import MorsePlayer from '../../audio/MorsePlayer';
+import MORSE_MAP from '../../audio/morseMap';
 
-const dataDnDKey = [
-    { id: "a", text: "A: An châu" },
-    { id: "b", text: "B: Bắc cạn" },
-    { id: "c", text: "C: Cao bằng" },
-    { id: "d", text: "D: Đáp cầu" },
-]
-
-const dataDnDNumber = [
-    { id: "1", text: "1: Một" },
-    { id: "2", text: "2: Hai" },
-]
-
-const dataSpecial = [
-    { id: ".", text: "Dấu chấm" },
-    { id: ",", text: "Dấu phẩy" },
-    { id: "?", text: "Dấu hỏi" },
-]
-
-const handlePressKey = (id: string) => {
-    console.log(`Pressed key: ${id}`);
-    MorsePlayer.playCharacter(id);
-}
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const numbers = '0123456789'.split('');
+const specials = ['.', ',', '?', '/', '=', '+', '-', '@'];
 
 function DnDScreen() {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
+  const handlePress = (char: string) => {
+    MorsePlayer.playCharacter(char);
+  };
+
+  const renderCharButton = (char: string) => {
+    const code = MORSE_MAP[char.toUpperCase()] || '';
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Tic ta</Text>
+      <TouchableOpacity
+        key={char}
+        style={styles.charBtn}
+        onPress={() => handlePress(char)}
+        activeOpacity={0.7}>
+        <Text style={styles.charLetter}>{char}</Text>
+        <Text style={styles.charMorse}>{code}</Text>
+        <Volume2 size={12} color={colors.textSecondary} />
+      </TouchableOpacity>
+    );
+  };
 
-            <Text style={styles.header}>Chữ cái</Text>
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <ArrowLeft size={22} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Tíc Tà Sound</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-            {
-                dataDnDKey.map((item, index) => {
-                    return (
-                        <TouchableOpacity key={index} style={styles.button} onPress={() => {
-                            handlePressKey(item.id)
-                        }}>
-                            <Text style={{
-                                textAlign: 'center',
-                                color: colors.text
-                            }}>{item.text}</Text>
-                        </TouchableOpacity>
-                    )
-                })
-            }
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
 
-            <Text style={styles.header}>Số</Text>
-            {
-                dataDnDNumber.map((item, index) => {
-                    return (
-                        <TouchableOpacity key={index} style={styles.button} onPress={() => {
-                            handlePressKey(item.id)
-                        }}>
-                            <Text style={{ textAlign: 'center', color: colors.text }}>{item.text}</Text>
-                        </TouchableOpacity>
-                    )
-                })
-            }
-
-            <Text style={styles.header}>Ký hiệu đặc biệt</Text>
-            {
-                dataSpecial.map((item, index) => {
-                    return (
-                        <TouchableOpacity key={index} style={styles.button} onPress={() => {
-                            handlePressKey(item.id)
-                        }}>
-                            <Text style={{
-                                textAlign: 'center',
-                                color: colors.text
-                            }}>{item.text}</Text>
-                        </TouchableOpacity>
-                    )
-                })
-            }
-
+        {/* Letters */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionDot, { backgroundColor: '#16A34A' }]} />
+            <Text style={styles.sectionTitle}>Chữ cái</Text>
+          </View>
+          <View style={styles.charGrid}>
+            {letters.map(renderCharButton)}
+          </View>
         </View>
-    )
+
+        {/* Numbers */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionDot, { backgroundColor: '#EAB308' }]} />
+            <Text style={styles.sectionTitle}>Số</Text>
+          </View>
+          <View style={styles.charGrid}>
+            {numbers.map(renderCharButton)}
+          </View>
+        </View>
+
+        {/* Specials */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionDot, { backgroundColor: '#8B5CF6' }]} />
+            <Text style={styles.sectionTitle}>Ký hiệu đặc biệt</Text>
+          </View>
+          <View style={styles.charGrid}>
+            {specials.map(renderCharButton)}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-        paddingHorizontal: 20,
-        paddingTop: 60,
-    },
-    button: {
-        borderRadius: 8,
-        padding: 10,
-        justifyContent: "center",
-        backgroundColor: colors.success,
-        margin: 12
-    },
-    text: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.text,
-        textAlign: "center"
-    },
-    title: {
-        fontSize: 30,
-        fontWeight: '700',
-        textAlign: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  content: {
+    padding: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  charGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  charBtn: {
+    width: '22%',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  charLetter: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  charMorse: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+});
 
-    },
-    header: {
-        fontSize: 18,
-        fontWeight: 500,
-    }
-
-})
-
-export default DnDScreen
+export default DnDScreen;
