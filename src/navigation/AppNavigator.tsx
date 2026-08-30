@@ -5,11 +5,23 @@ import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
 import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
+import ElectricBoardScreen from '../screens/ElectroTable/ElectricBoardScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
-import AudioTestScreen from '../screens/Test/AudioTestScreen';
-import AudioTest2 from '../screens/Test/AudioTest2';
+import { type CharacterType } from '../utils/morseGenerator';
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+  SplashScreen: undefined;
+  HomeScreen: undefined;
+  DnDScreen: undefined;
+  ElectroTableScreen: undefined;
+  ElectricBoardScreen: {
+    groupCount: number;
+    characterType: CharacterType;
+  };
+  ChatScreen: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function AppNavigator() {
   return (
@@ -18,9 +30,11 @@ function AppNavigator() {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
       <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
+      <Stack.Screen
+        name="ElectricBoardScreen"
+        component={ElectricBoardScreen}
+      />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
-      <Stack.Screen name="AudioTest" component={AudioTestScreen} />
-      <Stack.Screen name="AudioTest2" component={AudioTest2} />
     </Stack.Navigator>
   );
 }

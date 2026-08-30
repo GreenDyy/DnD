@@ -12,7 +12,7 @@ const groups = [
   ['f', 'e', 'n', 'g', 'm'],
 ];
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 function ElectricPanel() {
   const navigation = useNavigation();
@@ -34,7 +34,7 @@ function ElectricPanel() {
         setCurrentChar(c);
 
         const char = groups[g][c];
-        const code = MORSE_MAP[char.toUpperCase()];
+        const code = (MORSE_MAP as Record<string, string>)[char.toUpperCase()];
         if (code) {
           await MorsePlayer.playCode(code);
         }

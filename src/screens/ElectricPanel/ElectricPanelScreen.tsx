@@ -21,6 +21,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 60,
     },
+    header: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: colors.text,
+        marginBottom: 8,
+    },
+    subTitle: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        lineHeight: 24,
+    },
 });
 
 export default ElectricPanelScreen;

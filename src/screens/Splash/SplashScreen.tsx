@@ -1,10 +1,5 @@
 import React, { useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
+import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { images } from '../../assets';
@@ -25,11 +20,7 @@ function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Image
-        source={images.logo}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <Image source={images.logo} style={styles.logo} resizeMode="contain" />
 
       <ActivityIndicator
         size="large"
