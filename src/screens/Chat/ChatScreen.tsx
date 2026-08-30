@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalAIStore } from '../../store';
 import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
+import { parseIntent, getIntentNavigation } from '../../ai/IntentService';
 import TypingIndicator from '../../components/TypingIndicator';
 import { images } from '../../assets';
 import { AI_NAME, REPLIES } from '../../constants';
@@ -27,25 +28,40 @@ interface Message {
   id: string;
   role: 'user' | 'bot';
   text: string;
+  action?: {
+    label: string;
+    screen: string;
+    params?: Record<string, any>;
+  };
 }
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
 
 // Memoized message item
-const MessageItem = memo(({ item }: { item: Message }) => {
+const MessageItem = memo(({ item, onAction }: { item: Message; onAction?: (action: Message['action']) => void }) => {
   const isUser = item.role === 'user';
 
   return (
     <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowBot]}>
       {!isUser && <Image source={images.mori} style={styles.botAvatar} />}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleBot]}>
-        {item.text === '...' ? (
-          <TypingIndicator />
-        ) : (
-          <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
-            {item.text}
-          </Text>
+      <View style={[styles.bubbleWrap, isUser ? styles.bubbleWrapUser : styles.bubbleWrapBot]}>
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleBot]}>
+          {item.text === '...' ? (
+            <TypingIndicator />
+          ) : (
+            <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
+              {item.text}
+            </Text>
+          )}
+        </View>
+        {item.action && (
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => onAction?.(item.action)}
+            activeOpacity={0.7}>
+            <Text style={styles.actionBtnText}>{item.action.label}</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -62,7 +78,7 @@ function ChatScreen() {
     {
       id: '1',
       role: 'bot',
-      text: 'Xin chào! Mình là trợ lý AI Morse. Đang tải model, vui lòng chờ...',
+      text: 'Xin chào! Mình là trợ lý AI Morse. Đang khởi tạo...',
     },
   ]);
   const [input, setInput] = useState('');
@@ -79,7 +95,7 @@ function ChatScreen() {
       setMessages(prev =>
         prev.map(m =>
           m.id === '1'
-            ? { ...m, text: REPLIES.MODEL_LOADING }
+            ? { ...m, text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!' }
             : m,
         ),
       );
@@ -115,7 +131,26 @@ function ChatScreen() {
     try {
       let reply: string;
 
-      if (isReady) {
+      // Check intent first
+      const intent = parseIntent(text);
+      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+
+      if (intent.type !== 'ask_morse') {
+        reply = intent.response;
+
+        const navTarget = getIntentNavigation(intent.type, intent.params);
+        const botMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          role: 'bot',
+          text: reply,
+          action: navTarget ? {
+            label: `Mở ${intent.type === 'practice_electro' ? 'Bảng điện' : 'Tíc Tà Sound'}`,
+            screen: navTarget.screen,
+            params: navTarget.params,
+          } : undefined,
+        };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+      } else if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
           reply = REPLIES.OUT_OF_SCOPE;
         } else {
@@ -147,8 +182,10 @@ function ChatScreen() {
         reply = result.message;
       }
 
-      const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-      setMessages(prev => [...prev.slice(0, -1), botMessage]);
+      if (intent.type === 'ask_morse') {
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+      }
     } catch (err: any) {
       const errorMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: `Lỗi: ${err.message || 'Không thể generate'}` };
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
@@ -156,7 +193,7 @@ function ChatScreen() {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, generate, scrollToBottom]);
+  }, [input, isGenerating, isReady, generate, scrollToBottom, navigation]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`
@@ -174,11 +211,17 @@ function ChatScreen() {
         ? colors.error
         : colors.textSecondary;
 
+  const handleAction = useCallback((action?: Message['action']) => {
+    if (action) {
+      (navigation as any).navigate(action.screen, action.params);
+    }
+  }, [navigation]);
+
   const keyExtractor = useCallback((item: Message) => item.id, []);
 
   const renderItem = useCallback(({ item }: { item: Message }) => (
-    <MessageItem item={item} />
-  ), []);
+    <MessageItem item={item} onAction={handleAction} />
+  ), [handleAction]);
 
   return (
     <KeyboardAvoidingView
@@ -341,7 +384,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   bubble: {
-    maxWidth: '78%',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 18,
@@ -363,6 +405,27 @@ const styles = StyleSheet.create({
   },
   bubbleTextBot: {
     color: colors.text,
+  },
+  bubbleWrap: {
+    maxWidth: '78%',
+  },
+  bubbleWrapUser: {
+    alignItems: 'flex-end',
+  },
+  bubbleWrapBot: {
+    alignItems: 'flex-start',
+  },
+  actionBtn: {
+    marginTop: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   // Input
   inputContainer: {
