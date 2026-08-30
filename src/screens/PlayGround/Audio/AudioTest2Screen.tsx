@@ -3,24 +3,16 @@ import React, { useEffect, useState } from 'react';
 import {
   generateMorseBoard,
   type CharacterType,
-} from '../../utils/morseGenerator';
-import { morseAudio } from '../../audio/MorseAudioEngine';
+} from '../../../utils/morseGenerator';
+import { morseAudio } from '../../../audio/MorseAudioEngine';
 import { Slider } from 'react-native-elements';
 import { styles } from './styles';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { PlaygroundStackParamList } from '../../../types/navigation';
 
-type RootStackParamList = {
-  AudioTest2: {
-    frequency: number;
-    wpm: number;
-    groupCount: number;
-    characterType: CharacterType;
-  };
-};
+type Props = NativeStackScreenProps<PlaygroundStackParamList, 'AudioTest2Screen'>;
 
-type Props = NativeStackScreenProps<RootStackParamList, 'AudioTest2'>;
-
-const AudioTest2 = ({ route }: Props) => {
+const AudioTest2Screen = ({ route }: Props) => {
   const [frequency, setFrequency] = useState(600);
   const [wpm, setWpm] = useState(20);
   const [board, setBoard] = useState<{ groups: string[] }>({ groups: [] });
@@ -90,4 +82,4 @@ const AudioTest2 = ({ route }: Props) => {
     </View>
   );
 };
-export default AudioTest2;
+export default AudioTest2Screen;

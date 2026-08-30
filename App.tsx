@@ -1,9 +1,16 @@
+import { useEffect } from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
+import { useLocalAI } from './src/hooks';
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const { initialize } = useLocalAI();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <SafeAreaProvider>

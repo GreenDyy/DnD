@@ -1,1 +1,3 @@
-// Shared custom hooks
+export {
+    useLocalAI
+} from './useLocalAI';

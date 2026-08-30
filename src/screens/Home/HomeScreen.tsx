@@ -1,10 +1,21 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../types/navigation';
+import HomeCard from '../../components/HomeCard';
+
+const cards = [
+  { badge: 'HỌC', title: 'Học báo vụ', desc: 'Học bảng Morse và luyện nghe tín hiệu', color: '#E6FFFA', icon: 'book' },
+  { badge: 'NGHE', title: 'Tíc Tà Sound', desc: 'Nghe và nhận dạng tín hiệu Morse', color: '#EAFBF0', icon: 'headphones', screen: 'DnDScreen' },
+  { badge: 'TEST', title: 'Playground', desc: 'Thử tốc độ và chế độ phát', color: '#FFF4E5', icon: 'zap', screen: 'Playground' },
+  { badge: 'T-Q', title: 'Bảng điện', desc: 'Luyện tập truyền điện và nhận điện', color: '#F3E8FF', icon: 'radio', screen: 'ElectroTableScreen' },
+  { badge: 'CHAT', title: 'Trợ lý Morse', desc: 'Hỏi đáp về mã Morse', color: '#E6FFFA', icon: 'chat', screen: 'ChatScreen' },
+];
 
 function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={styles.container}>
@@ -29,7 +40,9 @@ function HomeScreen() {
           <Text style={styles.cardDesc}>Nghe và nhận dạng tín hiệu Morse</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, styles.orangeCard]}>
+        <TouchableOpacity style={[styles.card, styles.orangeCard]}
+          onPress={() => navigation.navigate('Playground')}
+        >
           <Text style={styles.badge}>TEST</Text>
           <Text style={styles.cardTitle}>Playground</Text>
           <Text style={styles.cardDesc}>Thử tốc độ và chế độ phát</Text>

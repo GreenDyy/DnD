@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { BookOpen, Headphones, Zap, Radio, MessageCircle } from 'lucide-react-native';
+import { BookOpen, Headphones, Zap, Radio, MessageCircle, Brain } from 'lucide-react-native';
 
 interface HomeCardProps {
   badge: string;
@@ -18,6 +18,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   zap: Zap,
   radio: Radio,
   chat: MessageCircle,
+  brain: Brain,
 };
 
 function HomeCard({ badge, title, desc, color, icon, screen }: HomeCardProps) {
