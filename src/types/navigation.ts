@@ -5,6 +5,11 @@ export type RootStackParamList = {
   HomeScreen: undefined;
   DnDScreen: undefined;
   ElectroTableScreen: undefined;
+  ElectricBoardScreen: {
+    groupCount: number;
+    characterType: CharacterType;
+    wpm?: number;
+  };
   ChatScreen: undefined;
   Playground: undefined;
 };

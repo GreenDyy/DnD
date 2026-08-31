@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput, View, Text, StyleSheet, TextInputProps } from 'react-native';
+import { TextInput, View, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
 import { colors } from '../../theme/colors';
 
 type InputProps = TextInputProps & {
@@ -7,11 +7,12 @@ type InputProps = TextInputProps & {
   error?: string;
   charCount?: boolean;
   maxLength?: number;
+  containerStyle?: ViewStyle;
 };
 
-function Input({ label, error, charCount, maxLength, value, style, ...props }: InputProps) {
+function Input({ label, error, charCount, maxLength, value, style, containerStyle, ...props }: InputProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
         style={[styles.input, error && styles.inputError, style]}

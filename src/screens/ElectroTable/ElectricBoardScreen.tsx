@@ -7,21 +7,22 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { generateMorseBoard } from '../../utils/morseGenerator';
 import { boardStyles } from './boardStyles';
-import { type RootStackParamList } from '../../navigation/AppNavigator';
+import { type RootStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 
 const defaultBoardParams = {
   groupCount: 10,
   characterType: 'letter' as const,
+  wpm: 20,
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const { width: screenWidth } = Dimensions.get('window');
-  const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(20);
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
+  const [frequency, setFrequency] = useState(600);
+  const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
     [groupCount, characterType],

@@ -35,15 +35,15 @@ const MessageItem = memo(({ item, onAction }: MessageItemProps) => {
               {item.text}
             </Text>
           )}
+          {item.action && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onAction?.(item.action)}
+              activeOpacity={0.7}>
+              <Text style={styles.actionBtnText}>{item.action.label}</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {item.action && (
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => onAction?.(item.action)}
-            activeOpacity={0.7}>
-            <Text style={styles.actionBtnText}>{item.action.label}</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
@@ -100,11 +100,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   actionBtn: {
-    marginTop: 8,
+    marginTop: 10,
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   actionBtnText: {
     fontSize: 14,

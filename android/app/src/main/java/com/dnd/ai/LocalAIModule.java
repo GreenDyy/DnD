@@ -230,6 +230,12 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
         }).start();
     }
 
+    @ReactMethod
+    public void stopGenerate() {
+        Log.i(TAG, "stopGenerate called");
+        LlamaNative.stopGenerate();
+    }
+
     private void sendProgress(int progress) {
         WritableMap params =
                 Arguments.createMap();

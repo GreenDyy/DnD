@@ -34,7 +34,7 @@ const features = [
     desc: 'Nghe và nhận dạng tín hiệu',
     color: '#22C55E',
     bgColor: '#DCFCE7',
-    screen: 'DnDScreen' as const,
+    screen: 'DnDScreen',
   },
   {
     id: '3',
@@ -43,7 +43,7 @@ const features = [
     desc: 'Thử tốc độ và chế độ',
     color: '#EAB308',
     bgColor: '#FEF9C3',
-    screen: 'Playground' as const,
+    screen: 'Playground',
   },
   {
     id: '4',
@@ -52,7 +52,7 @@ const features = [
     desc: 'Luyện truyền và nhận điện',
     color: '#15803D',
     bgColor: '#DCFCE7',
-    screen: 'ElectroTableScreen' as const,
+    screen: 'ElectroTableScreen',
   },
 ];
 

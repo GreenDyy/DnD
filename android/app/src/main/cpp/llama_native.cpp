@@ -11,6 +11,8 @@
 static constexpr const char* LOCAL_AI_TAG = "LocalAI";
 #define LOCAL_AI_LOG(...) __android_log_print(ANDROID_LOG_INFO, LOCAL_AI_TAG, __VA_ARGS__)
 
+static bool stopRequested = false;
+
 static std::string tokenToPiece(
         const llama_vocab* vocab,
         llama_token token) {
@@ -191,7 +193,16 @@ Java_com_dnd_ai_LlamaNative_generate(
     llama_sampler* sampler = llama_sampler_init_greedy();
     std::string output;
 
+    // Reset stop flag before generating
+    stopRequested = false;
+
     for (int i = 0; i < tokenLimit; ++i) {
+        // Check if stop was requested
+        if (stopRequested) {
+            LOCAL_AI_LOG("generate: stop requested at index=%d", i);
+            break;
+        }
+
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         llama_sampler_accept(sampler, token);
 
@@ -217,4 +228,14 @@ Java_com_dnd_ai_LlamaNative_generate(
     llama_free(context);
     LOCAL_AI_LOG("generate: finished output bytes=%zu", output.size());
     return env->NewStringUTF(output.c_str());
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_dnd_ai_LlamaNative_stopGenerate(
+        JNIEnv* env,
+        jclass clazz
+) {
+    LOCAL_AI_LOG("stopGenerate: setting stop flag");
+    stopRequested = true;
 }

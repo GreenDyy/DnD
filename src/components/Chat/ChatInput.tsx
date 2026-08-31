@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Send, Square } from 'lucide-react-native';
 import { Input } from '../Common';
 import { colors } from '../../theme/colors';
 
@@ -11,6 +11,7 @@ interface ChatInputProps {
   isLoading: boolean;
   onChangeText: (text: string) => void;
   onSend: () => void;
+  onStop?: () => void;
   maxLength?: number;
 }
 
@@ -21,6 +22,7 @@ function ChatInput({
   isLoading,
   onChangeText,
   onSend,
+  onStop,
   maxLength = 200,
 }: ChatInputProps) {
   const canSend = input.trim() && !isGenerating && !isLoading;
@@ -36,14 +38,23 @@ function ChatInput({
           onSubmitEditing={onSend}
           maxLength={maxLength}
           returnKeyType="send"
-          style={styles.input}
+          containerStyle={styles.input}
         />
-        <TouchableOpacity
-          style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
-          onPress={onSend}
-          disabled={!canSend}>
-          <Send size={18} color={colors.white} />
-        </TouchableOpacity>
+        {isGenerating ? (
+          <TouchableOpacity
+            style={styles.stopBtn}
+            onPress={onStop}
+            activeOpacity={0.7}>
+            <Square size={16} color={colors.white} fill={colors.white} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
+            onPress={onSend}
+            disabled={!canSend}>
+            <Send size={18} color={colors.white} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -75,6 +86,14 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  stopBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

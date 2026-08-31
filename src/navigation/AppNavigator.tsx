@@ -8,20 +8,6 @@ import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 import ElectricBoardScreen from '../screens/ElectroTable/ElectricBoardScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
-import { CharacterType } from '../utils/morseGenerator';
-
-// loại param cho từng màn hình, nếu màn hình không có param thì để undefined
-export type RootStackParamList = {
-  SplashScreen: undefined;
-  HomeScreen: undefined;
-  DnDScreen: undefined;
-  ElectroTableScreen: undefined;
-  ElectricBoardScreen: {
-    groupCount: number;
-    characterType: CharacterType;
-  };
-  ChatScreen: undefined;
-};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

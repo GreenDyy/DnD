@@ -10,10 +10,12 @@ interface LocalAIState {
   isReady: boolean;
   isLoading: boolean;
   error: string | null;
+  isCancelled: boolean;
   prepare: () => Promise<string>;
   loadModel: (path: string) => Promise<boolean>;
   initialize: () => Promise<void>;
   generate: (systemPrompt: string, prompt: string, maxTokens?: number) => Promise<string>;
+  cancelGenerate: () => void;
 }
 
 let initializationPromise: Promise<void> | null = null;
@@ -24,6 +26,7 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
   isReady: false,
   isLoading: false,
   error: LocalAI ? null : 'LocalAI native module is not available. Rebuild the app and restart it.',
+  isCancelled: false,
 
   prepare: async () => {
     if (!LocalAI) {
@@ -88,6 +91,9 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
       throw new Error('Load the model before generating text.');
     }
 
+    // Reset cancel flag
+    set({ isCancelled: false });
+
     console.log('📤 [LocalAI] generate called');
     console.log('  systemPrompt:', systemPrompt.substring(0, 100) + '...');
     console.log('  userPrompt:', prompt.substring(0, 200) + '...');
@@ -95,8 +101,23 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
 
     const result = await LocalAI.generate(systemPrompt, prompt, maxTokens);
 
+    // Check if cancelled while waiting
+    if (get().isCancelled) {
+      console.log('❌ [LocalAI] generate cancelled');
+      set({ isCancelled: false });
+      throw new Error('CANCELLED');
+    }
+
     console.log('📥 [LocalAI] generate result:', result?.substring(0, 200));
     return result;
+  },
+
+  cancelGenerate: () => {
+    set({ isCancelled: true });
+    // Also stop native inference immediately
+    if (LocalAI && LocalAI.stopGenerate) {
+      LocalAI.stopGenerate();
+    }
   },
 
 }));

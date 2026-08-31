@@ -25,7 +25,7 @@ const MAX_PROMPT_LENGTH = 800;
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { progress, isReady, isLoading, error, initialize, generate } =
+  const { progress, isReady, isLoading, error, initialize, generate, cancelGenerate } =
     useLocalAIStore();
 
   const [messages, setMessages] = useState<Message[]>([
@@ -70,6 +70,18 @@ function ChatScreen() {
     }, 50);
   }, []);
 
+  const handleStop = useCallback(() => {
+    cancelGenerate();
+    setIsGenerating(false);
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last && last.text === '...') {
+        return [...prev.slice(0, -1)];
+      }
+      return prev;
+    });
+  }, [cancelGenerate]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isGenerating) return;
@@ -98,12 +110,17 @@ function ChatScreen() {
           role: 'bot',
           text: reply,
           action: navTarget ? {
-            label: `Mở ${intent.type === 'practice_electro' ? 'Bảng điện' : 'Tíc Tà Sound'}`,
+            label: intent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
             screen: navTarget.screen,
             params: navTarget.params,
           } : undefined,
         };
-        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+
+        // Typing delay 800ms rồi mới show reply
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 800);
+        return;
       } else if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
           reply = REPLIES.OUT_OF_SCOPE;
@@ -141,6 +158,10 @@ function ChatScreen() {
         setMessages(prev => [...prev.slice(0, -1), botMessage]);
       }
     } catch (err: any) {
+      // Ignore cancelled errors
+      if (err?.message === 'CANCELLED') {
+        return;
+      }
       const errorMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: `Lỗi: ${err.message || 'Không thể generate'}` };
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
     } finally {
@@ -212,6 +233,7 @@ function ChatScreen() {
           isLoading={isLoading}
           onChangeText={setInput}
           onSend={handleSend}
+          onStop={handleStop}
           maxLength={MAX_INPUT_LENGTH}
         />
       </View>
