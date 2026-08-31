@@ -12,7 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaygroundStackParamList } from '../../../types/navigation';
 import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader } from 'lucide-react-native';
 import { colors } from '../../../theme/colors';
-import Button from '../../../components/Button/Button';
+import { Button } from '../../../components/Common';
 import Input from '../../../components/Input/Input';
 import { useLocalAIStore } from '../../../store';
 import knowledgeService from '../../../ai/KnowledgeService';
