@@ -4,7 +4,7 @@ import { colors } from '../../theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { APP_NAME } from '../../constants/config';
 import { images } from '../../assets';
 import { useLocalAIStore } from '../../store';
@@ -58,17 +58,16 @@ const features = [
 
 function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets();
   const { isReady, isLoading, error } = useLocalAIStore();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 16 }]}>
+        contentContainerStyle={styles.scrollContent}>
 
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image source={images.logo} style={styles.logo} />
             <View>
@@ -112,7 +111,7 @@ function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

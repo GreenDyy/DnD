@@ -43,14 +43,6 @@ function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      {/* <View style={styles.bgLayer}>
-        <Image
-          source={images.background}
-          style={styles.bg}
-          resizeMode="cover"
-        />
-      </View> */}
-
       <View style={styles.content}>
         <Image
           source={images.logo}

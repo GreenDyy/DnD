@@ -9,7 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalAIStore } from '../../store';
 import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
@@ -24,7 +24,6 @@ const MAX_PROMPT_LENGTH = 800;
 
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets();
   const { progress, isReady, isLoading, error, initialize, generate, cancelGenerate } =
     useLocalAIStore();
 
@@ -199,33 +198,31 @@ function ChatScreen() {
   ), [handleAction]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}>
-      <View style={{ paddingTop: insets.top + 8 }}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}>
         <ChatHeader
           statusText={statusText}
           statusColor={statusColor}
           onBack={() => navigation.goBack()}
         />
-      </View>
 
-      <FlatList
-        ref={flatListRef}
-        style={styles.messageList}
-        contentContainerStyle={styles.messageListContent}
-        data={messages}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        initialNumToRender={10}
-        onContentSizeChange={scrollToBottom}
-      />
+        <FlatList
+          ref={flatListRef}
+          style={styles.messageList}
+          contentContainerStyle={styles.messageListContent}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          onContentSizeChange={scrollToBottom}
+        />
 
-      <View style={{ paddingBottom: insets.bottom + 8 }}>
         <ChatInput
           input={input}
           isReady={isReady}
@@ -236,15 +233,15 @@ function ChatScreen() {
           onStop={handleStop}
           maxLength={MAX_INPUT_LENGTH}
         />
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F2F5',
+    backgroundColor: '#E2E8F0',
   },
   messageList: {
     flex: 1,

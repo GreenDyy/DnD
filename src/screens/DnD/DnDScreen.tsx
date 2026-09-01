@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Volume2 } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
@@ -13,7 +13,6 @@ const specials = ['.', ',', '?', '/', '=', '+', '-', '@'];
 
 function DnDScreen() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
 
   const handlePress = (char: string) => {
     MorsePlayer.playCharacter(char);
@@ -35,9 +34,9 @@ function DnDScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
@@ -50,7 +49,7 @@ function DnDScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
+        contentContainerStyle={styles.content}>
 
         {/* Letters */}
         <View style={styles.section}>
@@ -85,7 +84,7 @@ function DnDScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

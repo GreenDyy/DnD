@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { type RootStackParamList } from '../../types/navigation';
 import {
@@ -64,52 +65,54 @@ function ElectroTableScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.eyebrow}>BẢNG ĐIỆN MORSE</Text>
-      <Text style={styles.title}>Thiết lập bài luyện</Text>
-      <Text style={styles.subtitle}>
-        Chọn dữ liệu đầu vào trước khi tạo bảng ký tự ngẫu nhiên.
-      </Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.eyebrow}>BẢNG ĐIỆN MORSE</Text>
+        <Text style={styles.title}>Thiết lập bài luyện</Text>
+        <Text style={styles.subtitle}>
+          Chọn dữ liệu đầu vào trước khi tạo bảng ký tự ngẫu nhiên.
+        </Text>
 
-      <View style={styles.panel}>
-        <Text style={styles.label}>SỐ NHÓM KÝ TỰ</Text>
-        <TextInput
-          value={groupCount}
-          onChangeText={setGroupCount}
-          keyboardType="number-pad"
-          style={styles.input}
-          placeholder="10"
-        />
-        <Text style={styles.helper}>Mỗi nhóm gồm 5 ký tự</Text>
+        <View style={styles.panel}>
+          <Text style={styles.label}>SỐ NHÓM KÝ TỰ</Text>
+          <TextInput
+            value={groupCount}
+            onChangeText={setGroupCount}
+            keyboardType="number-pad"
+            style={styles.input}
+            placeholder="10"
+          />
+          <Text style={styles.helper}>Mỗi nhóm gồm 5 ký tự</Text>
 
-        <Text style={[styles.label, styles.sectionGap]}>LOẠI KÝ TỰ</Text>
-        <View style={styles.choiceRow}>
-          {characterOptions.map(option => (
-            <Pressable
-              key={option.value}
-              style={[
-                styles.choice,
-                characterType === option.value && styles.choiceActive,
-              ]}
-              onPress={() => setCharacterType(option.value)}
-            >
-              <Text
+          <Text style={[styles.label, styles.sectionGap]}>LOẠI KÝ TỰ</Text>
+          <View style={styles.choiceRow}>
+            {characterOptions.map(option => (
+              <Pressable
+                key={option.value}
                 style={[
-                  styles.choiceText,
-                  characterType === option.value && styles.choiceTextActive,
+                  styles.choice,
+                  characterType === option.value && styles.choiceActive,
                 ]}
+                onPress={() => setCharacterType(option.value)}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={[
+                    styles.choiceText,
+                    characterType === option.value && styles.choiceTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
 
-      <Pressable style={styles.generateButton} onPress={handleGenerate}>
-        <Text style={styles.generateButtonText}>Tạo bảng</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable style={styles.generateButton} onPress={handleGenerate}>
+          <Text style={styles.generateButtonText}>Tạo bảng</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 56,
+    paddingTop: 16,
     paddingBottom: 40,
   },
   eyebrow: {
