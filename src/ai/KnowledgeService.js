@@ -231,8 +231,8 @@ class KnowledgeService {
     const outputTokens = maxTokens || 256;
     const totalTokens = systemTokens + inputTokens + outputTokens;
 
-    const MAX_TOTAL = 1024;  // Context window an toàn cho model nhỏ
-    const MAX_INPUT = 600;   // System + user prompt không quá 600 tokens
+    const MAX_TOTAL = 2048;  // Context window an toàn cho model nhỏ
+    const MAX_INPUT = 2048;   // System + user prompt không quá 600 tokens
 
     const inputTotal = systemTokens + inputTokens;
 
