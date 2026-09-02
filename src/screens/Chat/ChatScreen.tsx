@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalAIStore } from '../../store';
 import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
-import { parseIntent, getIntentNavigation } from '../../ai/IntentService';
+import { parseIntent, getIntentNavigation, collectMissingParams, getFollowUpQuestion } from '../../ai/IntentService';
+import type { ParsedIntent } from '../../ai/IntentService';
 import { MessageItem, ChatHeader, ChatInput } from '../../components/Chat';
 import type { Message } from '../../components/Chat';
 import { colors } from '../../theme/colors';
@@ -36,6 +37,7 @@ function ChatScreen() {
   ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -95,32 +97,118 @@ function ChatScreen() {
 
     try {
       let reply: string;
+      let actionMsg: Message['action'] | undefined;
 
-      // Check intent first
-      const intent = parseIntent(text);
-      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+      // === CASE 1: Có pendingIntent đang chờ collect params ===
+      if (pendingIntent) {
+        const result = collectMissingParams(pendingIntent, text);
+        const updatedIntent: ParsedIntent = {
+          ...pendingIntent,
+          params: result.params,
+          isComplete: result.isComplete,
+          missingParams: result.missingParams,
+        };
 
-      if (intent.type !== 'ask_morse') {
-        reply = intent.response;
+        if (result.isComplete) {
+          // Đủ params → finalize
+          const finalIntent: ParsedIntent = {
+            ...updatedIntent,
+            response: (() => {
+              const { getIntentNavigation: _, ...rest } = updatedIntent;
+              return '';
+            })(),
+          };
+          // Generate response with full params
+          const charTypeLabel: Record<string, string> = { letter: 'chữ cái', number: 'chữ số', mixed: 'hỗn hợp' };
+          const numberFormatLabel: Record<string, string> = { short: 'số tắt', normal: 'số thường' };
+          const p = result.params;
 
-        const navTarget = getIntentNavigation(intent.type, intent.params);
+          if (updatedIntent.type === 'practice_electro') {
+            const charLabel = charTypeLabel[p.characterType] || p.characterType;
+            const fmtLabel = p.characterType === 'number' && p.numberFormat
+              ? `, ${numberFormatLabel[p.numberFormat] || p.numberFormat}`
+              : '';
+            reply = `Được! Mình sẽ mở bảng điện ${p.groupCount} nhóm, ${charLabel}${fmtLabel}, tốc độ ${p.wpm} ký tự / 1 phút. Bắt đầu nhé!`;
+          } else if (updatedIntent.type === 'practice_listen') {
+            reply = `Ok! Mở chế độ luyện nghe với tốc độ ${p.speed} ký tự / 1 phút. Nghe kỹ và gõ đúng nha!`;
+          } else if (updatedIntent.type === 'play_morse') {
+            reply = `Mình sẽ phát âm morse của ký tự "${p.character}" ngay!`;
+          } else {
+            reply = 'Đã đủ thông tin!';
+          }
+
+          const navTarget = getIntentNavigation(updatedIntent.type, result.params);
+          actionMsg = navTarget ? {
+            label: updatedIntent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
+            screen: navTarget.screen,
+            params: navTarget.params,
+          } : undefined;
+
+          setPendingIntent(null);
+        } else {
+          // Còn thiếu → hỏi tiếp
+          reply = getFollowUpQuestion(updatedIntent);
+          setPendingIntent(updatedIntent);
+        }
+
         const botMessage: Message = {
           id: (Date.now() + 2).toString(),
           role: 'bot',
           text: reply,
-          action: navTarget ? {
+          action: actionMsg,
+        };
+
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 400);
+        return;
+      }
+
+      // === CASE 2: Parse intent mới ===
+      const intent = parseIntent(text);
+      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+
+      if (intent.type !== 'ask_morse') {
+        if (intent.isComplete) {
+          // Đủ params → show action
+          reply = intent.response;
+          const navTarget = getIntentNavigation(intent.type, intent.params);
+          actionMsg = navTarget ? {
             label: intent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
             screen: navTarget.screen,
             params: navTarget.params,
-          } : undefined,
-        };
+          } : undefined;
 
-        // Typing delay 800ms rồi mới show reply
-        setTimeout(() => {
-          setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        }, 800);
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+            action: actionMsg,
+          };
+
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+        } else {
+          // Thiếu params → hỏi & lưu pendingIntent
+          reply = getFollowUpQuestion(intent);
+          setPendingIntent(intent);
+
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+          };
+
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+        }
         return;
-      } else if (isReady) {
+      }
+
+      // === CASE 3: ask_morse → LLM flow ===
+      if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
           reply = REPLIES.OUT_OF_SCOPE;
         } else {
@@ -152,12 +240,9 @@ function ChatScreen() {
         reply = result.message;
       }
 
-      if (intent.type === 'ask_morse') {
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setMessages(prev => [...prev.slice(0, -1), botMessage]);
-      }
+      const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+      setMessages(prev => [...prev.slice(0, -1), botMessage]);
     } catch (err: any) {
-      // Ignore cancelled errors
       if (err?.message === 'CANCELLED') {
         return;
       }
@@ -167,7 +252,7 @@ function ChatScreen() {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, generate, scrollToBottom, navigation]);
+  }, [input, isGenerating, isReady, pendingIntent, generate, scrollToBottom, navigation]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`

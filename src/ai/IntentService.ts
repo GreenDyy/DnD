@@ -6,11 +6,68 @@ export type IntentType =
   | 'unknown';
 
 export type CharacterType = 'letter' | 'number' | 'mixed';
+export type NumberFormatType = 'short' | 'normal';
 
 export interface ParsedIntent {
   type: IntentType;
   params: Record<string, any>;
   response: string;
+  isComplete: boolean;
+  missingParams: string[];
+}
+
+const REQUIRED_PARAMS: Record<IntentType, string[]> = {
+  practice_electro: ['groupCount', 'characterType', 'wpm'],
+  practice_listen: [],
+  play_morse: ['character'],
+  ask_morse: [],
+  unknown: [],
+};
+
+const OPTIONAL_PARAMS: Record<IntentType, Record<string, any>> = {
+  practice_electro: { characterType: 'letter', wpm: 20 },
+  practice_listen: { speed: 20 },
+  play_morse: {},
+  ask_morse: {},
+  unknown: {},
+};
+
+function generateFollowUpQuestion(intent: ParsedIntent): string {
+  const missing = intent.missingParams;
+  if (missing.length === 0) return '';
+
+  const p = intent.params;
+
+  if (intent.type === 'practice_electro') {
+    const parts: string[] = [];
+    if (missing.includes('groupCount')) {
+      parts.push('bao nhiêu nhóm');
+    }
+    if (missing.includes('characterType')) {
+      parts.push('chữ cái, chữ số hay hỗn hợp');
+    }
+    if (missing.includes('wpm')) {
+      parts.push('tốc độ bao nhiêu ký tự / 1 phút');
+    }
+    if (missing.includes('numberFormat')) {
+      parts.push('số tắt hay số thường');
+    }
+
+    if (parts.length === 1) {
+      return `Bạn muốn ${parts[0]}?`;
+    }
+    return `Bạn muốn ${parts.join(', ')}?`;
+  }
+
+  if (intent.type === 'practice_listen') {
+    return `Bạn muốn tốc độ nghe bao nhiêu ký tự / 1 phút?`;
+  }
+
+  if (intent.type === 'play_morse') {
+    return `Bạn muốn phát âm morse của ký tự nào?`;
+  }
+
+  return `Bạn muốn cài đặt gì thêm?`;
 }
 
 const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match: RegExpMatchArray) => Record<string, any> }[] = [
@@ -22,60 +79,46 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
       /(?:thu|luyện|truyền)\s+.*(?:nhóm|tốc\s+độ|wpm)/i,
       /(?:bảng\s+điện|morse\s+table)/i,
       /(?:gõ|type|send)\s+(?:bảng|morse)/i,
+      /(?:tôi\s+)?(?:muốn\s+)?thu(?:\s|$)/i,
     ],
     extractor: (match) => {
       const text = match.input || '';
+      const params: Record<string, any> = {};
 
-      // 1. Detect characterType
-      let characterType: CharacterType = 'letter';
-      if (/(?:chữ\s*số|number|số)/i.test(text)) {
-        characterType = 'number';
-      } else if (/(?:hỗn\s*hợp|mixed)/i.test(text)) {
-        characterType = 'mixed';
+      // Extract groupCount
+      const groupMatch = text.match(/(\d+)\s*(?:nhóm|groups?)/i);
+      if (groupMatch) {
+        params.groupCount = parseInt(groupMatch[1], 10);
+      } else {
+        const allNumbers = (text.match(/\d+/g) || []).map(Number);
+        if (allNumbers.length >= 1) {
+          params.groupCount = allNumbers[0];
+        }
       }
 
-      // 2. Extract groupCount: match "X nhóm"
-      const groupMatch = text.match(/(\d+)\s*(?:nhóm|groups?)/i);
+      // Extract characterType
+      if (/(?:chữ\s*số|number|số)/i.test(text)) {
+        params.characterType = 'number' as CharacterType;
+      } else if (/(?:hỗn\s*hợp|mixed)/i.test(text)) {
+        params.characterType = 'mixed' as CharacterType;
+      }
 
-      // 3. Extract wpm: match "tốc độ X", "X wpm", "X chữ/phút"
-      const wpmContextMatch = text.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
+      // Extract wpm
+      const wpmMatch = text.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
         || text.match(/(\d+)\s*(?:wpm|chữ|từ|chars?)?\s*(?:\/?\s*phút|per\s*min)/i)
         || text.match(/(\d+)\s*wpm/i);
-
-      // 4. Get all numbers from text
-      const allNumbers = (text.match(/\d+/g) || []).map(Number);
-
-      // 5. Assign values
-      let groupCount: number;
-      let wpm: number;
-
-      if (groupMatch && wpmContextMatch) {
-        // Both context found
-        groupCount = parseInt(groupMatch[1], 10);
-        wpm = parseInt(wpmContextMatch[1], 10);
-      } else if (groupMatch) {
-        // Only groupCount context
-        groupCount = parseInt(groupMatch[1], 10);
-        wpm = allNumbers.length >= 2 ? allNumbers[1] : 20;
-      } else if (wpmContextMatch) {
-        // Only wpm context
-        wpm = parseInt(wpmContextMatch[1], 10);
-        groupCount = allNumbers.length >= 2 ? allNumbers[0] : 10;
-      } else if (allNumbers.length === 1) {
-        // Single number, assume groupCount
-        groupCount = allNumbers[0];
-        wpm = 20;
-      } else if (allNumbers.length >= 2) {
-        // Multiple numbers, first = groupCount, second = wpm
-        groupCount = allNumbers[0];
-        wpm = allNumbers[1];
-      } else {
-        // No numbers
-        groupCount = 10;
-        wpm = 20;
+      if (wpmMatch) {
+        params.wpm = parseInt(wpmMatch[1], 10);
       }
 
-      return { groupCount, wpm, characterType };
+      // Extract numberFormat (chữ số)
+      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
+        params.numberFormat = 'short';
+      } else if (/(?:số\s*thường|số\s*dài|normal)/i.test(text)) {
+        params.numberFormat = 'normal';
+      }
+
+      return params;
     },
   },
   {
@@ -87,10 +130,12 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
     ],
     extractor: (match) => {
       const text = match.input || '';
+      const params: Record<string, any> = {};
       const speed = text.match(/(\d+)\s*(?:wpm|chữ|từ)\s*(?:\/?\s*phút)?/i);
-      return {
-        speed: speed ? parseInt(speed[1], 10) : 20,
-      };
+      if (speed) {
+        params.speed = parseInt(speed[1], 10);
+      }
+      return params;
     },
   },
   {
@@ -101,13 +146,65 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
     ],
     extractor: (match) => {
       const text = match.input || '';
+      const params: Record<string, any> = {};
       const charMatch = text.match(/(?:morse|mã|play|nghe)\s+(?:cho|của|từ)?\s*["""]?([a-zA-Z0-9.,?]+)["""]?/i);
-      return {
-        character: charMatch ? charMatch[1].toUpperCase() : 'A',
-      };
+      if (charMatch) {
+        params.character = charMatch[1].toUpperCase();
+      }
+      return params;
     },
   },
 ];
+
+function checkComplete(type: IntentType, params: Record<string, any>): { isComplete: boolean; missingParams: string[] } {
+  const required = [...(REQUIRED_PARAMS[type] || [])];
+
+  // Conditional required: numberFormat chỉ cần khi characterType === 'number'
+  if (type === 'practice_electro' && params.characterType === 'number') {
+    if (!required.includes('numberFormat')) {
+      required.push('numberFormat');
+    }
+  }
+
+  const missing = required.filter(p => params[p] === undefined || params[p] === null || params[p] === '');
+  return {
+    isComplete: missing.length === 0,
+    missingParams: missing,
+  };
+}
+
+function applyDefaults(type: IntentType, params: Record<string, any>): Record<string, any> {
+  const defaults = OPTIONAL_PARAMS[type] || {};
+  return { ...defaults, ...params };
+}
+
+function generateIntentResponse(type: IntentType, params: Record<string, any>): string {
+  const characterTypeLabel: Record<CharacterType, string> = {
+    letter: 'chữ cái',
+    number: 'chữ số',
+    mixed: 'hỗn hợp',
+  };
+  const numberFormatLabel: Record<string, string> = {
+    short: 'số tắt',
+    normal: 'số thường',
+  };
+
+  switch (type) {
+    case 'practice_electro': {
+      const charLabel = characterTypeLabel[params.characterType] || params.characterType;
+      const fmtLabel = params.characterType === 'number' && params.numberFormat
+        ? `, ${numberFormatLabel[params.numberFormat] || params.numberFormat}`
+        : '';
+      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}${fmtLabel}, tốc độ ${params.wpm} ký tự / 1 phút. Bắt đầu nhé!`;
+    }
+    case 'practice_listen':
+      return `Ok! Mở chế độ luyện nghe với tốc độ ${params.speed} ký tự / 1 phút. Nghe kỹ và gõ đúng nha!`;
+    case 'play_morse':
+      return `Mình sẽ phát âm morse của ký tự "${params.character}" ngay!`;
+    default:
+      return '';
+  }
+}
 
 export function parseIntent(text: string): ParsedIntent {
   const normalizedText = text.trim().toLowerCase();
@@ -116,11 +213,19 @@ export function parseIntent(text: string): ParsedIntent {
     for (const pattern of intentDef.patterns) {
       const match = normalizedText.match(pattern);
       if (match) {
-        const params = intentDef.extractor(match);
+        const rawParams = intentDef.extractor(match);
+        // Check completeness against RAW params only (no defaults yet)
+        const { isComplete, missingParams } = checkComplete(intentDef.type, rawParams);
+
+        // Only apply defaults when complete (user has provided all required)
+        const params = isComplete ? applyDefaults(intentDef.type, rawParams) : rawParams;
+
         return {
           type: intentDef.type,
           params,
-          response: generateIntentResponse(intentDef.type, params),
+          response: isComplete ? generateIntentResponse(intentDef.type, params) : '',
+          isComplete,
+          missingParams,
         };
       }
     }
@@ -130,26 +235,100 @@ export function parseIntent(text: string): ParsedIntent {
     type: 'ask_morse',
     params: {},
     response: '',
+    isComplete: true,
+    missingParams: [],
   };
 }
 
-function generateIntentResponse(type: IntentType, params: Record<string, any>): string {
-  const characterTypeLabel: Record<CharacterType, string> = {
-    letter: 'chữ cái',
-    number: 'chữ số',
-    mixed: 'hỗn hợp',
-  };
+export function collectMissingParams(
+  intent: ParsedIntent,
+  userText: string,
+): { params: Record<string, any>; isComplete: boolean; missingParams: string[] } {
+  const updatedParams = { ...intent.params };
+  const normalizedText = userText.trim().toLowerCase();
 
-  switch (type) {
-    case 'practice_electro':
-      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${characterTypeLabel[params.characterType]}, tốc độ ${params.wpm} WPM. Bắt đầu nhé!`;
-    case 'practice_listen':
-      return `Ok! Mở chế độ luyện nghe với tốc độ ${params.wpm} WPM. Nghe kỹ và gõ đúng nha!`;
-    case 'play_morse':
-      return `Mình sẽ phát âm morse của ký tự "${params.character}" ngay!`;
-    default:
-      return '';
+  // Check for "mặc định" / "bỏ qua" — use defaults
+  if (/(?:mặc\s*định|default|bỏ\s*qua|skip)/i.test(normalizedText)) {
+    const defaults = OPTIONAL_PARAMS[intent.type] || {};
+    for (const key of intent.missingParams) {
+      if (updatedParams[key] === undefined && defaults[key] !== undefined) {
+        updatedParams[key] = defaults[key];
+      }
+    }
+  } else {
+    // Extract characterType
+    if (intent.missingParams.includes('characterType')) {
+      if (/(?:chữ\s*số|number|số)/i.test(normalizedText)) {
+        updatedParams.characterType = 'number' as CharacterType;
+      } else if (/(?:hỗn\s*hợp|mixed)/i.test(normalizedText)) {
+        updatedParams.characterType = 'mixed' as CharacterType;
+      } else if (/(?:chữ\s*cái|letter)/i.test(normalizedText)) {
+        updatedParams.characterType = 'letter' as CharacterType;
+      }
+    }
+
+    // Extract wpm
+    if (intent.missingParams.includes('wpm')) {
+      const wpmMatch = normalizedText.match(/(\d+)\s*(?:wpm|chữ|từ)/i)
+        || normalizedText.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
+        || normalizedText.match(/^(\d+)$/);
+      if (wpmMatch) {
+        updatedParams.wpm = parseInt(wpmMatch[1], 10);
+      }
+    }
+
+    // Extract numberFormat
+    if (intent.missingParams.includes('numberFormat')) {
+      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(normalizedText)) {
+        updatedParams.numberFormat = 'short';
+      } else if (/(?:số\s*thường|số\s*dài|normal)/i.test(normalizedText)) {
+        updatedParams.numberFormat = 'normal';
+      }
+    }
+
+    // Extract speed
+    if (intent.missingParams.includes('speed')) {
+      const speedMatch = normalizedText.match(/(\d+)\s*(?:wpm|chữ|từ)/i)
+        || normalizedText.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
+        || normalizedText.match(/^(\d+)$/);
+      if (speedMatch) {
+        updatedParams.speed = parseInt(speedMatch[1], 10);
+      }
+    }
+
+    // Extract groupCount (nếu user bổ sung sau)
+    if (intent.missingParams.includes('groupCount')) {
+      const groupMatch = normalizedText.match(/(\d+)\s*(?:nhóm|groups?)/i)
+        || normalizedText.match(/^(\d+)$/);
+      if (groupMatch) {
+        updatedParams.groupCount = parseInt(groupMatch[1], 10);
+      }
+    }
+
+    // Extract character
+    if (intent.missingParams.includes('character')) {
+      const charMatch = normalizedText.match(/([a-zA-Z0-9.,?]+)/);
+      if (charMatch) {
+        updatedParams.character = charMatch[1].toUpperCase();
+      }
+    }
   }
+
+  // Check completeness against current params
+  const { isComplete, missingParams } = checkComplete(intent.type, updatedParams);
+
+  // If required params are complete, apply defaults for optional params
+  const finalParams = isComplete ? applyDefaults(intent.type, updatedParams) : updatedParams;
+
+  return {
+    params: finalParams,
+    isComplete,
+    missingParams,
+  };
+}
+
+export function getFollowUpQuestion(intent: ParsedIntent): string {
+  return generateFollowUpQuestion(intent);
 }
 
 export function getIntentNavigation(type: IntentType, params: Record<string, any>): { screen: string; params?: Record<string, any> } | null {
@@ -160,6 +339,7 @@ export function getIntentNavigation(type: IntentType, params: Record<string, any
         params: {
           groupCount: params.groupCount,
           characterType: params.characterType,
+          numberFormat: params.numberFormat,
           wpm: params.wpm,
         },
       };

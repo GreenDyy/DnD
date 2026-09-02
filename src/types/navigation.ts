@@ -8,6 +8,7 @@ export type RootStackParamList = {
   ElectricBoardScreen: {
     groupCount: number;
     characterType: CharacterType;
+    numberFormat?: 'short' | 'normal';
     wpm?: number;
   };
   ChatScreen: undefined;
