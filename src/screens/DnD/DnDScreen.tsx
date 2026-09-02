@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, Volume2 } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
-import MorsePlayer from '../../audio/MorsePlayer';
+import { morseAudio } from '../../audio/MorseAudioEngine';
 import MORSE_MAP from '../../audio/morseMap';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../types/navigation';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'DnDScreen'>;
 
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const numbers = '0123456789'.split('');
@@ -13,13 +17,19 @@ const specials = ['.', ',', '?', '/', '=', '+', '-', '@'];
 
 function DnDScreen() {
   const navigation = useNavigation();
+  const route = useRoute<Props['route']>();
+  const speed = route.params?.speed ?? 10;
 
-  const handlePress = (char: string) => {
-    MorsePlayer.playCharacter(char);
+  const handlePress = async (char: string) => {
+    await morseAudio.start();
+    morseAudio.setWpm(speed);
+    morseAudio.setFrequency(600);
+    morseAudio.setVolume(1);
+    await morseAudio.playText(char);
   };
 
   const renderCharButton = (char: string) => {
-    const code = MORSE_MAP[char.toUpperCase()] || '';
+    const code = MORSE_MAP[char.toUpperCase() as keyof typeof MORSE_MAP] || '';
     return (
       <TouchableOpacity
         key={char}

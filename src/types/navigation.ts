@@ -3,7 +3,7 @@ import type { CharacterType } from '../utils/morseGenerator';
 export type RootStackParamList = {
   SplashScreen: undefined;
   HomeScreen: undefined;
-  DnDScreen: undefined;
+  DnDScreen: { speed?: number };
   ElectroTableScreen: undefined;
   ElectricBoardScreen: {
     groupCount: number;

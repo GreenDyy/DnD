@@ -26,7 +26,7 @@ const REQUIRED_PARAMS: Record<IntentType, string[]> = {
 
 const OPTIONAL_PARAMS: Record<IntentType, Record<string, any>> = {
   practice_electro: { characterType: 'letter', wpm: 20 },
-  practice_listen: { speed: 20 },
+  practice_listen: {},
   play_morse: {},
   ask_morse: {},
   unknown: {},
@@ -57,10 +57,6 @@ function generateFollowUpQuestion(intent: ParsedIntent): string {
       return `Bạn muốn ${parts[0]}?`;
     }
     return `Bạn muốn ${parts.join(', ')}?`;
-  }
-
-  if (intent.type === 'practice_listen') {
-    return `Bạn muốn tốc độ nghe bao nhiêu ký tự / 1 phút?`;
   }
 
   if (intent.type === 'play_morse') {
@@ -128,14 +124,8 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
       /(?:listen|hearing)\s*(?:practice|test)?/i,
       /(?:tic\s*tà|tíc\s*tà)/i,
     ],
-    extractor: (match) => {
-      const text = match.input || '';
-      const params: Record<string, any> = {};
-      const speed = text.match(/(\d+)\s*(?:wpm|chữ|từ)\s*(?:\/?\s*phút)?/i);
-      if (speed) {
-        params.speed = parseInt(speed[1], 10);
-      }
-      return params;
+    extractor: () => {
+      return {};
     },
   },
   {
@@ -178,7 +168,7 @@ function applyDefaults(type: IntentType, params: Record<string, any>): Record<st
   return { ...defaults, ...params };
 }
 
-function generateIntentResponse(type: IntentType, params: Record<string, any>): string {
+export function generateIntentResponse(type: IntentType, params: Record<string, any>): string {
   const characterTypeLabel: Record<CharacterType, string> = {
     letter: 'chữ cái',
     number: 'chữ số',
@@ -198,7 +188,7 @@ function generateIntentResponse(type: IntentType, params: Record<string, any>): 
       return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}${fmtLabel}, tốc độ ${params.wpm} ký tự / 1 phút. Bắt đầu nhé!`;
     }
     case 'practice_listen':
-      return `Ok! Mở chế độ luyện nghe với tốc độ ${params.speed} ký tự / 1 phút. Nghe kỹ và gõ đúng nha!`;
+      return 'Sau đây chúng ta qua màn hình nghe tín hiệu nhé';
     case 'play_morse':
       return `Mình sẽ phát âm morse của ký tự "${params.character}" ngay!`;
     default:
@@ -286,16 +276,6 @@ export function collectMissingParams(
       }
     }
 
-    // Extract speed
-    if (intent.missingParams.includes('speed')) {
-      const speedMatch = normalizedText.match(/(\d+)\s*(?:wpm|chữ|từ)/i)
-        || normalizedText.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
-        || normalizedText.match(/^(\d+)$/);
-      if (speedMatch) {
-        updatedParams.speed = parseInt(speedMatch[1], 10);
-      }
-    }
-
     // Extract groupCount (nếu user bổ sung sau)
     if (intent.missingParams.includes('groupCount')) {
       const groupMatch = normalizedText.match(/(\d+)\s*(?:nhóm|groups?)/i)
@@ -344,7 +324,7 @@ export function getIntentNavigation(type: IntentType, params: Record<string, any
         },
       };
     case 'practice_listen':
-      return { screen: 'DnDScreen', params: { speed: params.speed } };
+      return { screen: 'DnDScreen' };
     case 'play_morse':
       return null;
     default:

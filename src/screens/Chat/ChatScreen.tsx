@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalAIStore } from '../../store';
 import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
-import { parseIntent, getIntentNavigation, collectMissingParams, getFollowUpQuestion } from '../../ai/IntentService';
+import { parseIntent, getIntentNavigation, collectMissingParams, getFollowUpQuestion, generateIntentResponse } from '../../ai/IntentService';
 import type { ParsedIntent } from '../../ai/IntentService';
 import { MessageItem, ChatHeader, ChatInput } from '../../components/Chat';
 import type { Message } from '../../components/Chat';
@@ -110,16 +110,16 @@ function ChatScreen() {
           morseAudio.setVolume(1);
           await morseAudio.playText(pendingPlayChar);
           reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
-        } else {
-          reply = `Đã hủy phát tín hiệu ${pendingPlayChar}.`;
-        }
-        setPendingPlayChar(null);
+          setPendingPlayChar(null);
 
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setTimeout(() => {
-          setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        }, 400);
-        return;
+          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+          return;
+        }
+        // Không match "có" → silent cancel, rơi xuống xử lý câu mới
+        setPendingPlayChar(null);
       }
 
       // === CASE 1: Có pendingIntent đang chờ collect params ===
@@ -141,24 +141,7 @@ function ChatScreen() {
               return '';
             })(),
           };
-          // Generate response with full params
-          const charTypeLabel: Record<string, string> = { letter: 'chữ cái', number: 'chữ số', mixed: 'hỗn hợp' };
-          const numberFormatLabel: Record<string, string> = { short: 'số tắt', normal: 'số thường' };
-          const p = result.params;
-
-          if (updatedIntent.type === 'practice_electro') {
-            const charLabel = charTypeLabel[p.characterType] || p.characterType;
-            const fmtLabel = p.characterType === 'number' && p.numberFormat
-              ? `, ${numberFormatLabel[p.numberFormat] || p.numberFormat}`
-              : '';
-            reply = `Được! Mình sẽ mở bảng điện ${p.groupCount} nhóm, ${charLabel}${fmtLabel}, tốc độ ${p.wpm} ký tự / 1 phút. Bắt đầu nhé!`;
-          } else if (updatedIntent.type === 'practice_listen') {
-            reply = `Ok! Mở chế độ luyện nghe với tốc độ ${p.speed} ký tự / 1 phút. Nghe kỹ và gõ đúng nha!`;
-          } else if (updatedIntent.type === 'play_morse') {
-            reply = `Mình sẽ phát âm morse của ký tự "${p.character}" ngay!`;
-          } else {
-            reply = 'Đã đủ thông tin!';
-          }
+          reply = generateIntentResponse(updatedIntent.type, result.params);
 
           const navTarget = getIntentNavigation(updatedIntent.type, result.params);
           actionMsg = navTarget ? {
