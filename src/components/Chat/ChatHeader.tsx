@@ -8,13 +8,13 @@ import { AI_NAME } from '../../constants';
 interface ChatHeaderProps {
   statusText: string;
   statusColor: string;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 function ChatHeader({ statusText, statusColor, onBack }: ChatHeaderProps) {
   return (
     <View style={styles.header}>
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+      <TouchableOpacity style={styles.menuBtn} onPress={onBack}>
         <ArrowLeft size={22} color="#0F172A" />
       </TouchableOpacity>
 
@@ -26,7 +26,7 @@ function ChatHeader({ statusText, statusColor, onBack }: ChatHeaderProps) {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.menuBtn}>
+      <TouchableOpacity style={styles.moreBtn}>
         <MoreVertical size={20} color="#64748B" />
       </TouchableOpacity>
     </View>
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#CBD5E1',
   },
-  backBtn: {
+  menuBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  menuBtn: {
+  moreBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,

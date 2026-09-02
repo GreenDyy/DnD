@@ -11,7 +11,8 @@ export type RootStackParamList = {
     wpm?: number;
   };
   ChatScreen: undefined;
-  Playground: undefined;
+  PlaygroundScreen: undefined;
+
 };
 
 export type PlaygroundStackParamList = {

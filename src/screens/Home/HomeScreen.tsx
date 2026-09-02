@@ -43,7 +43,7 @@ const features = [
     desc: 'Thử tốc độ và chế độ',
     color: '#EAB308',
     bgColor: '#FEF9C3',
-    screen: 'Playground',
+    screen: 'PlaygroundScreen',
   },
   {
     id: '4',
