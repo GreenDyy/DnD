@@ -123,7 +123,7 @@ class KnowledgeService {
     const morseKeywords = [
       'morse', 'mã morse', 'tích', 'tà', 'sos', 'dot', 'dash',
       'ký tự', 'chữ', 'mã', 'tín hiệu', 'phát', 'thu',
-      'báo vụ', 'telegraph', 'điện报',
+      'báo vụ', 'telegraph', 'điện',
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
       'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
@@ -148,23 +148,31 @@ class KnowledgeService {
     }
 
     // 2. Hỏi về ký tự
-    const characterMatch = text.match(/(?:chữ|ký tự|mã|mã)?\s*([a-z])/);
+    const characterMatch = text.match(/(?:chữ|ký tự|mã|morse|tín hiệu|hiệu)\s*([a-z0-9])/i);
 
     if (
       characterMatch &&
-      (text.includes('morse') || text.includes('chữ') || text.includes('ký tự'))
+      (text.includes('morse') || text.includes('chữ') || text.includes('ký tự') || text.includes('tín hiệu') || text.includes('hiệu'))
     ) {
-      const character = characterMatch[1];
+      const character = characterMatch[1].toUpperCase();
       const result = this.findCharacter(character);
 
       if (result) {
+        // Chuyển description: "D gồm tà - tích - tích." → "gồm ta-tích-tích"
+        const descClean = result.description
+          .replace(/^[A-Z0-9]\s*gồm\s*/, 'gồm ')
+          .replace(/\s*-\s*/g, '-')
+          .replace(/tà/g, 'ta')
+          .replace(/\.\s*$/, '');
+
+        const pronunciation = result.pronunciation ? `, có phiên âm là ${result.pronunciation}` : '';
         return {
           type: 'character',
           answer: result.character,
           code: result.code,
+          pronunciation: result.pronunciation || '',
           message:
-            `Chữ ${result.character} trong Morse là ${result.code}. ` +
-            result.description
+            `Tín hiệu ${result.character} là ${result.code} ${descClean}${pronunciation}`
         };
       }
     }

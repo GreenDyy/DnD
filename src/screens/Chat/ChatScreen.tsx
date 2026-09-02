@@ -19,6 +19,7 @@ import { MessageItem, ChatHeader, ChatInput } from '../../components/Chat';
 import type { Message } from '../../components/Chat';
 import { colors } from '../../theme/colors';
 import { AI_NAME, REPLIES } from '../../constants';
+import { morseAudio } from '../../audio/MorseAudioEngine';
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
@@ -38,6 +39,7 @@ function ChatScreen() {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
+  const [pendingPlayChar, setPendingPlayChar] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -98,6 +100,27 @@ function ChatScreen() {
     try {
       let reply: string;
       let actionMsg: Message['action'] | undefined;
+
+      // === CASE 0: Đang chờ xác nhận phát âm thanh Morse ===
+      if (pendingPlayChar) {
+        if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
+          await morseAudio.start();
+          morseAudio.setFrequency(600);
+          morseAudio.setWpm(8);
+          morseAudio.setVolume(1);
+          await morseAudio.playText(pendingPlayChar);
+          reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
+        } else {
+          reply = `Đã hủy phát tín hiệu ${pendingPlayChar}.`;
+        }
+        setPendingPlayChar(null);
+
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 400);
+        return;
+      }
 
       // === CASE 1: Có pendingIntent đang chờ collect params ===
       if (pendingIntent) {
@@ -207,7 +230,24 @@ function ChatScreen() {
         return;
       }
 
-      // === CASE 3: ask_morse → LLM flow ===
+      // === CASE 3: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
+      const askResult = knowledgeService.ask(text);
+
+      if (askResult.type === 'character') {
+        // Hỏi về ký tự → trả lời trực tiếp + hỏi phát âm
+        const char = askResult.answer;
+        reply = askResult.message;
+        reply += `\n\nBạn có muốn tôi phát tín hiệu ${char} không?`;
+        setPendingPlayChar(char);
+
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 400);
+        return;
+      }
+
+      // Các loại query khác → qua LLM
       if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
           reply = REPLIES.OUT_OF_SCOPE;
@@ -236,8 +276,7 @@ function ChatScreen() {
           }
         }
       } else {
-        const result = knowledgeService.ask(text);
-        reply = result.message;
+        reply = askResult.message;
       }
 
       const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
