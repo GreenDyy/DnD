@@ -51,10 +51,10 @@ function DnDScreen() {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}>
-          <ArrowLeft size={22} color={colors.text} />
+          <ArrowLeft size={20} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tíc Tà Sound</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>TÍC TÀ SOUND</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -107,29 +107,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 1,
+  },
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   content: {
     padding: 16,
