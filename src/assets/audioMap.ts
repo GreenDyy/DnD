@@ -44,25 +44,70 @@ export const characterAudioNameMap: Record<string, string> = {
 
 // Tạo một bộ nhớ đệm để lưu các đối tượng Sound đã được tải, tránh tải lại nhiều lần cùng một âm thanh.
 const soundCache: Record<string, Sound> = {};
+const soundLoadCache: Record<string, Promise<Sound> | undefined> = {};
 
 // Lấy tên tệp âm thanh cho ký tự đã cho, nếu không có thì trả về undefined
 export function getCharacterAudioName(char: string): string | undefined {
   return characterAudioNameMap[char.toUpperCase()];
 }
 
-// Tải và phát âm thanh cho ký tự đã cho, sử dụng bộ nhớ đệm để tránh tải lại nhiều lần
-function loadAndPlaySound(
-  source: number | string,
-  mode: 'bundle' | 'native',
-  char: string,
-  resolve: () => void,
-  reject: (reason?: unknown) => void,
-) {
-  const cacheKey = `${mode}:${String(source)}`;
-  const cachedSound = soundCache[cacheKey];
+function loadSound(source: string): Promise<Sound> {
+  const candidates = [source, `${source}.mp3`, source.replace(/\.mp3$/i, '')];
 
-  // Hàm phụ trợ để phát âm thanh và xử lý kết quả
-  const play = (sound: Sound) => {
+  for (const candidate of candidates) {
+    const cacheKey = `native:${candidate}`;
+
+    if (soundCache[cacheKey]) {
+      return Promise.resolve(soundCache[cacheKey]);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(soundLoadCache, cacheKey)) {
+      return soundLoadCache[cacheKey] as Promise<Sound>;
+    }
+  }
+
+  const candidate = candidates.find(item => !!item) ?? source;
+  const cacheKey = `native:${candidate}`;
+
+  const loadPromise = new Promise<Sound>((resolve, reject) => {
+    const sound = new Sound(candidate, Sound.MAIN_BUNDLE, error => {
+      if (error) {
+        const fallback = candidates.find(item => item !== candidate);
+
+        if (fallback) {
+          delete soundLoadCache[cacheKey];
+          loadSound(fallback).then(resolve).catch(reject);
+          return;
+        }
+
+        reject(error);
+        return;
+      }
+
+      soundCache[cacheKey] = sound;
+      delete soundLoadCache[cacheKey];
+      resolve(sound);
+    });
+
+    if (!sound) {
+      delete soundLoadCache[cacheKey];
+      reject(new Error(`Sound object is null for ${candidate}`));
+    }
+  });
+
+  soundLoadCache[cacheKey] = loadPromise;
+  return loadPromise;
+}
+
+// Phát âm thanh cho ký tự đã cho, trả về một Promise để xử lý kết quả
+export async function playCharacterAudio(char: string): Promise<void> {
+  const normalized = char.toUpperCase();
+  const nativeName =
+    getCharacterAudioName(normalized) ?? getCharacterAudioName('A') ?? 'a';
+
+  const sound = await loadSound(nativeName);
+
+  await new Promise<void>((resolve, reject) => {
     sound.stop(() => {
       sound.play(success => {
         if (!success) {
@@ -72,52 +117,5 @@ function loadAndPlaySound(
         resolve();
       });
     });
-  };
-
-  if (cachedSound) {
-    play(cachedSound);
-    return;
-  }
-
-  // Nếu chưa có trong bộ nhớ đệm, tạo một đối tượng Sound mới và tải âm thanh
-  const sound = new Sound(
-    source as number,
-    mode === 'native' ? Sound.MAIN_BUNDLE : undefined,
-    error => {
-      if (error) {
-        console.error('[audioMap] Sound load failed:', {
-          source,
-          mode,
-          char,
-          error,
-        });
-        reject(error);
-        return;
-      }
-
-      soundCache[cacheKey] = sound;
-      play(sound);
-    },
-  );
-
-  if (!sound) {
-    console.error('[audioMap] Sound object is null:', { source, mode, char });
-  }
-}
-
-// Phát âm thanh cho ký tự đã cho, trả về một Promise để xử lý kết quả
-export function playCharacterAudio(char: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const normalized = char.toUpperCase();
-    // const bundleSource =
-    //   getCharacterAudio(normalized) ?? getCharacterAudioOrFallback(normalized);
-    const nativeName =
-      getCharacterAudioName(normalized) ?? getCharacterAudioName('A') ?? 'a';
-
-    const tryNativeFallback = () => {
-      loadAndPlaySound(nativeName, 'native', char, resolve, reject);
-    };
-
-    tryNativeFallback();
   });
 }
