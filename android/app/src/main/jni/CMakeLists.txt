@@ -19,18 +19,22 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=armv8.7-a")
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../../../../native/llama.cpp llama-build EXCLUDE_FROM_ALL)
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/../../../../../native/llama.cpp/CMakeLists.txt")
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../../../../native/llama.cpp llama-build EXCLUDE_FROM_ALL)
+endif()
 
-add_library(
-        llama_native
-        SHARED
-        ../cpp/llama_native.cpp
-)
+if(TARGET llama)
+    add_library(
+            llama_native
+            SHARED
+            ../cpp/llama_native.cpp
+    )
 
-find_library(log-lib log)
+    find_library(log-lib log)
 
-target_link_libraries(
-        llama_native
-        llama
-        ${log-lib}
-)
+    target_link_libraries(
+            llama_native
+            llama
+            ${log-lib}
+    )
+endif()

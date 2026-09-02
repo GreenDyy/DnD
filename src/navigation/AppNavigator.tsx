@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types/navigation';
+import type { RootStackParamList as AppRootStackParamList } from '../types/navigation';
 
 import SplashScreen from '../screens/Splash/SplashScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -8,22 +8,10 @@ import DnDScreen from '../screens/DnD/DnDScreen';
 import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 import ElectricBoardScreen from '../screens/ElectroTable/ElectricBoardScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
-import { CharacterType } from '../utils/morseGenerator';
 
-// loại param cho từng màn hình, nếu màn hình không có param thì để undefined
-export type RootStackParamList = {
-  SplashScreen: undefined;
-  HomeScreen: undefined;
-  DnDScreen: undefined;
-  ElectroTableScreen: undefined;
-  ElectricBoardScreen: {
-    groupCount: number;
-    characterType: CharacterType;
-  };
-  ChatScreen: undefined;
-};
+export type RootStackParamList = AppRootStackParamList;
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<AppRootStackParamList>();
 
 function AppNavigator() {
   return (

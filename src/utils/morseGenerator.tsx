@@ -1,4 +1,4 @@
-export type CharacterType = 'letter' | 'number' | 'mixed';
+export type CharacterType = 'letter' | 'number' | 'shortNumber' | 'mixed';
 
 // dữ liệu cần thiết lập cho một bảng điện
 export interface MorseBoardConfig {
@@ -22,6 +22,10 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const NUMBERS = '0123456789';
 
+// Với số tắt, giữ nguyên tập số như số thường nhưng dùng một mapping riêng
+// cho các chữ số đặc biệt 0, 1, 2, 8, 9 nếu cần mở rộng sau này.
+const SHORT_NUMBERS = NUMBERS;
+
 // Lấy tập ký tự dựa trên loại ký tự được chọn
 function getCharacterPool(type: CharacterType): string {
   switch (type) {
@@ -30,6 +34,9 @@ function getCharacterPool(type: CharacterType): string {
 
     case 'number':
       return NUMBERS;
+
+    case 'shortNumber':
+      return SHORT_NUMBERS;
 
     case 'mixed':
       return LETTERS + NUMBERS;
@@ -93,6 +100,7 @@ function validateMorseBoardConfig(config: MorseBoardConfig): void {
   if (
     config.characterType !== 'letter' &&
     config.characterType !== 'number' &&
+    config.characterType !== 'shortNumber' &&
     config.characterType !== 'mixed'
   ) {
     throw new Error(`Loại ký tự không hợp lệ: ${config.characterType}`);

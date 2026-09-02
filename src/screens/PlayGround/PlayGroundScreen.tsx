@@ -3,10 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaygroundStackParamList } from '../../types/navigation';
-import { ArrowLeft, Brain, Headphones, Radio, Camera } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Brain,
+  Headphones,
+  Radio,
+  Camera,
+} from 'lucide-react-native';
 import { colors } from '../../theme/colors';
 
-const features: { title: string; desc: string; icon: any; color: string; screen: keyof PlaygroundStackParamList }[] = [
+const features = [
   {
     title: 'AI Model',
     desc: 'Test useLocalAI & KnowledgeService',
@@ -20,11 +26,18 @@ const features: { title: string; desc: string; icon: any; color: string; screen:
     icon: Headphones,
     color: '#EAFBF0',
     screen: 'AudioPlaygroundScreen',
-  }
-];
+  },
+] as const satisfies ReadonlyArray<{
+  title: string;
+  desc: string;
+  icon: any;
+  color: string;
+  screen: keyof PlaygroundStackParamList;
+}>;
 
 function PlayGroundScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
 
   return (
     <View style={styles.container}>
@@ -46,7 +59,8 @@ function PlayGroundScreen() {
               key={index}
               style={[styles.card, { backgroundColor: item.color }]}
               activeOpacity={0.7}
-              onPress={() => navigation.navigate(item.screen)}>
+              onPress={() => navigation.navigate(item.screen)}
+            >
               <View style={styles.iconWrap}>
                 <Icon size={28} color="#111827" />
               </View>

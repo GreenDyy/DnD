@@ -236,9 +236,12 @@ class MorseAudioEngine {
   }
 
   // Chuyển text sang Morse rồi phát
-  async playText(text: string) {
+  async playText(
+    text: string,
+    mode: 'standard' | 'shortNumber' = 'standard',
+  ) {
     this.currentText = text;
-    const morse = textToMorse(text);
+    const morse = textToMorse(text, mode);
     await this.playMorseFromIndex(morse, 0);
   }
 

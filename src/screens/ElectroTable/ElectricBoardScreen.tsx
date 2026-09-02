@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Pause, Play, RotateCcw } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
+import { playCharacterAudio } from '../../assets/audioMap';
 import { generateMorseBoard } from '../../utils/morseGenerator';
 import { boardStyles } from './boardStyles';
 import { type RootStackParamList } from '../../navigation/AppNavigator';
@@ -33,6 +34,18 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     morseAudio.setWpm(wpm);
     morseAudio.setVolume(0.5);
     await morseAudio.playText(board.groups.join(' '));
+  };
+
+  const compareBoard = async () => {
+    const orderedCharacters = groups.flatMap(group => group.split(''));
+
+    for (const char of orderedCharacters) {
+      const normalizedChar = char.toUpperCase();
+      await playCharacterAudio(normalizedChar);
+      await new Promise(resolve => {
+        setTimeout(() => resolve(undefined), 180);
+      });
+    }
   };
 
   return (
@@ -181,7 +194,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <Text style={boardStyles.compareHelp}>
           Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
         </Text>
-        <Pressable style={boardStyles.checkButton} onPress={() => {}}>
+        <Pressable style={boardStyles.checkButton} onPress={compareBoard}>
           <Check size={18} color="#F8FAFC" />
           <Text style={boardStyles.checkButtonText}>Đối chiếu</Text>
         </Pressable>
