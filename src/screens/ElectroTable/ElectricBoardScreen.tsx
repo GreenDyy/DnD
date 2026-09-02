@@ -21,6 +21,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const { width: screenWidth } = Dimensions.get('window');
   const [frequency, setFrequency] = useState(600);
   const [wpm, setWpm] = useState(20);
+  const cpm = wpm * 5;
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
   const board = useMemo(
@@ -41,6 +42,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     for (const char of orderedCharacters) {
       const normalizedChar = char.toUpperCase();
+      if (!normalizedChar) {
+        continue;
+      }
+
       await playCharacterAudio(normalizedChar);
       await new Promise(resolve => {
         setTimeout(() => resolve(undefined), 180);
@@ -82,7 +87,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={boardStyles.metaRow}>
           <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
           <Text style={boardStyles.meta}>{frequency} HZ</Text>
-          <Text style={boardStyles.meta}>{wpm} WPM</Text>
+          <Text style={boardStyles.meta}>{cpm} chữ / phút</Text>
         </View>
       </View>
 
@@ -107,18 +112,18 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       <View style={boardStyles.settingsPanel}>
         <View style={boardStyles.settingRow}>
           <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
-          <Text style={boardStyles.settingValue}>{wpm} WPM</Text>
+          <Text style={boardStyles.settingValue}>{cpm} chữ / phút</Text>
         </View>
         <Slider
-          minimumValue={5}
+          minimumValue={1}
           maximumValue={100}
-          step={5}
+          step={1}
           value={wpm}
           onValueChange={setWpm}
         />
         <View style={boardStyles.rangeRow}>
-          <Text style={boardStyles.rangeText}>5 WPM</Text>
-          <Text style={boardStyles.rangeText}>100 WPM</Text>
+          <Text style={boardStyles.rangeText}>5 chữ / phút</Text>
+          <Text style={boardStyles.rangeText}>500 chữ / phút</Text>
         </View>
       </View>
 

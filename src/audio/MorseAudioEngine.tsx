@@ -1,8 +1,7 @@
 import { AudioContext, OscillatorNode, GainNode } from 'react-native-audio-api';
 
-// Hàm chuyển văn bản bình thường thành chuỗi Morse.
-// Ví dụ: "SOS" → "... --- ..."
 import { textToMorse } from '../constants/morseMap';
+import MorsePlayer from '../services/MorsePlayer';
 
 // Class chịu trách nhiệm tạo và điều khiển âm thanh Morse
 class MorseAudioEngine {
@@ -40,15 +39,31 @@ class MorseAudioEngine {
   private resumeResolver: (() => void) | null = null;
   private playbackToken = 0;
 
+  private hasAudioRuntime() {
+    return (
+      typeof globalThis !== 'undefined' &&
+      !!(globalThis as any).createAudioContext
+    );
+  }
+
+  private async fallbackPlayText(text: string) {
+    MorsePlayer.setWpm(this.wpm);
+    await MorsePlayer.playText(text);
+  }
+
   // Khởi tạo audio engine nếu chưa khởi tạo
   private ensureInitialized() {
     // Nếu đã tạo context, oscillator và gain rồi thì không tạo lại
-    if (this.initialized) {
+    if (this.initialized || !this.hasAudioRuntime()) {
       return;
     }
 
-    // Tạo audio context
-    this.context = new AudioContext();
+    try {
+      // Tạo audio context
+      this.context = new AudioContext();
+    } catch {
+      return;
+    }
 
     // Tạo bộ phát sóng âm và node điều chỉnh âm lượng
     this.oscillator = this.context.createOscillator();
@@ -78,6 +93,10 @@ class MorseAudioEngine {
 
   // Bảo đảm audio context đã sẵn sàng để phát âm
   async start() {
+    if (!this.hasAudioRuntime()) {
+      return;
+    }
+
     // Khởi tạo nếu cần
     this.ensureInitialized();
 
@@ -172,12 +191,21 @@ class MorseAudioEngine {
   // Phát một chuỗi Morse từ vị trí bắt đầu.
   // Ví dụ: "... --- ..." hoặc ".- / -..."
   private async playMorseFromIndex(morse: string, startIndex: number) {
+    if (!this.hasAudioRuntime()) {
+      await this.fallbackPlayText(morse.replace(/\./g, '').replace(/-/g, ''));
+      return;
+    }
+
     const token = ++this.playbackToken;
     this.stopRequested = false;
     this.currentMorse = morse;
     this.currentIndex = startIndex;
 
-    await this.start();
+    try {
+      await this.start();
+    } catch {
+      return;
+    }
 
     const unit = this.getUnitDuration();
 
@@ -236,11 +264,18 @@ class MorseAudioEngine {
   }
 
   // Chuyển text sang Morse rồi phát
-  async playText(
-    text: string,
-    mode: 'standard' | 'shortNumber' = 'standard',
-  ) {
+  async playText(text: string, mode: 'standard' | 'shortNumber' = 'standard') {
+    if (!text) {
+      return;
+    }
+
     this.currentText = text;
+
+    if (!this.hasAudioRuntime()) {
+      await this.fallbackPlayText(text);
+      return;
+    }
+
     const morse = textToMorse(text, mode);
     await this.playMorseFromIndex(morse, 0);
   }
@@ -252,6 +287,10 @@ class MorseAudioEngine {
 
     if (this.gain) {
       this.gain.gain.value = 0;
+    }
+
+    if (!this.hasAudioRuntime()) {
+      MorsePlayer.stop();
     }
   }
 
@@ -272,6 +311,10 @@ class MorseAudioEngine {
     this.isPaused = false;
     this.currentIndex = 0;
     this.playbackToken += 1;
+
+    if (!this.hasAudioRuntime()) {
+      MorsePlayer.stop();
+    }
 
     if (this.currentText) {
       this.playText(this.currentText);
