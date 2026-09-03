@@ -1,11 +1,18 @@
-import React, { useMemo, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Slider from '@react-native-community/slider';
 import { ArrowLeft, Check, Pause, Play, RotateCcw } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
-import { playCharacterAudio } from '../../assets/audioMap';
+import { playCharacterAudio, stopCharacterAudio } from '../../assets/audioMap';
 import { generateMorseBoard } from '../../utils/morseGenerator';
 import { boardStyles } from './boardStyles';
 import { type RootStackParamList } from '../../navigation/AppNavigator';
@@ -19,8 +26,23 @@ const defaultBoardParams = {
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const { width: screenWidth } = Dimensions.get('window');
+  const usableWidth = Math.max(screenWidth - 40, 0);
+  const boardGridWidth = Math.max(usableWidth - 108, 0);
+  const groupAreaWidth = Math.max(boardGridWidth - 36, 0);
+  const groupsPerRow = Math.max(
+    1,
+    Math.min(4, Math.floor((groupAreaWidth + 8) / 44)),
+  );
+  const groupCellWidth =
+    (groupAreaWidth - (groupsPerRow - 1) * 8) / groupsPerRow;
   const [frequency, setFrequency] = useState(600);
   const [wpm, setWpm] = useState(20);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [hasCompared, setHasCompared] = useState(false);
+  const compareSessionRef = useRef(0);
   const cpm = wpm * 5;
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
@@ -31,26 +53,75 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const groups = board.groups.slice(1, -1);
 
   const playBoard = async () => {
+    if (isPlaying) {
+      morseAudio.pause();
+      setIsPlaying(false);
+      return;
+    }
+
     morseAudio.setFrequency(frequency);
     morseAudio.setWpm(wpm);
     morseAudio.setVolume(0.5);
-    await morseAudio.playText(board.groups.join(' '));
+    setIsPlaying(true);
+    setHasPlayed(true);
+
+    try {
+      await morseAudio.playText(board.groups.join(' '));
+    } finally {
+      setIsPlaying(false);
+    }
   };
 
   const compareBoard = async () => {
-    const orderedCharacters = groups.flatMap(group => group.split(''));
-
-    for (const char of orderedCharacters) {
-      const normalizedChar = char.toUpperCase();
-      if (!normalizedChar) {
-        continue;
-      }
-
-      await playCharacterAudio(normalizedChar);
-      await new Promise(resolve => {
-        setTimeout(() => resolve(undefined), 180);
-      });
+    if (isLoading) {
+      compareSessionRef.current += 1;
+      stopCharacterAudio();
+      setIsComparing(false);
+      setIsLoading(false);
+      return;
     }
+
+    const sessionId = compareSessionRef.current + 1;
+    compareSessionRef.current = sessionId;
+    setIsLoading(true);
+    setIsComparing(true);
+    setHasCompared(true);
+
+    try {
+      const orderedCharacters = groups.flatMap(group => group.split(''));
+
+      for (const char of orderedCharacters) {
+        if (compareSessionRef.current !== sessionId) {
+          return;
+        }
+
+        const normalizedChar = char.toUpperCase();
+        if (!normalizedChar) {
+          continue;
+        }
+
+        await playCharacterAudio(normalizedChar);
+        if (compareSessionRef.current !== sessionId) {
+          return;
+        }
+        await new Promise(resolve => {
+          setTimeout(() => resolve(undefined), 180);
+        });
+      }
+    } finally {
+      if (compareSessionRef.current === sessionId) {
+        setIsComparing(false);
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const resetComparison = () => {
+    compareSessionRef.current += 1;
+    stopCharacterAudio();
+    setIsComparing(false);
+    setIsLoading(false);
+    setHasCompared(false);
   };
 
   return (
@@ -60,13 +131,15 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={boardStyles.headerRow}>
-        <Pressable
+        <TouchableOpacity
           accessibilityLabel="Quay lại màn hình thiết lập"
-          style={boardStyles.backButton}
-          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+          disabled={isLoading}
+          style={[boardStyles.backButton, isLoading && { opacity: 0.5 }]}
+          onPress={() => !isLoading && navigation.goBack()}
         >
           <ArrowLeft size={20} color="#132238" />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={boardStyles.headerLabel}>BẢNG ĐIỆN</Text>
         <View style={boardStyles.headerSpacer} />
       </View>
@@ -138,10 +211,16 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         </View>
         <View style={boardStyles.boardGrid}>
           {Array.from(
-            { length: Math.ceil(groups.length / 4) },
+            { length: Math.ceil(groups.length / groupsPerRow) },
             (_, rowIndex) => {
-              const rowGroups = groups.slice(rowIndex * 4, rowIndex * 4 + 4);
-              const endNumber = Math.min((rowIndex + 1) * 4, groups.length);
+              const rowGroups = groups.slice(
+                rowIndex * groupsPerRow,
+                rowIndex * groupsPerRow + groupsPerRow,
+              );
+              const endNumber = Math.min(
+                (rowIndex + 1) * groupsPerRow,
+                groups.length,
+              );
 
               return (
                 <View
@@ -152,7 +231,13 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                     {rowGroups.map((group, groupIndex) => (
                       <View
                         key={`${group}-${groupIndex}`}
-                        style={boardStyles.groupCell}
+                        style={[
+                          boardStyles.groupCell,
+                          { flex: 0,
+                            width: groupCellWidth,
+                            minWidth: groupCellWidth,
+                          },
+                        ]}
                       >
                         <Text style={boardStyles.groupText}>{group}</Text>
                       </View>
@@ -170,24 +255,37 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       </View>
 
       <View style={boardStyles.controlsRow}>
-        <Pressable style={boardStyles.playButton} onPress={playBoard}>
-          <Play size={18} color="#F8FAFC" fill="#F8FAFC" />
-          <Text style={boardStyles.playButtonText}>Phát bảng</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Tạm dừng phát"
-          style={boardStyles.iconButton}
-          onPress={() => morseAudio.pause()}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={boardStyles.playButton}
+          onPress={playBoard}
         >
-          <Pause size={19} color="#132238" />
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Phát lại từ đầu"
-          style={boardStyles.iconButton}
-          onPress={() => morseAudio.restart()}
-        >
-          <RotateCcw size={19} color="#132238" />
-        </Pressable>
+          {isPlaying ? (
+            <Pause size={18} color="#F8FAFC" />
+          ) : (
+            <Play size={18} color="#F8FAFC" fill="#F8FAFC" />
+          )}
+          <Text style={boardStyles.playButtonText}>
+            {isPlaying ? 'Tạm dừng' : 'Phát bảng'}
+          </Text>
+        </TouchableOpacity>
+        {hasPlayed ? (
+          <TouchableOpacity
+            accessibilityLabel="Đặt lại bảng phát"
+            activeOpacity={0.8}
+            disabled={isLoading}
+            style={[boardStyles.iconButton, isLoading && { opacity: 0.5 }]}
+            onPress={() => {
+              if (!isLoading) {
+                morseAudio.stop();
+                setIsPlaying(false);
+                setHasPlayed(false);
+              }
+            }}
+          >
+            <RotateCcw size={19} color="#132238" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <View style={boardStyles.sectionRow}>
@@ -199,10 +297,31 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <Text style={boardStyles.compareHelp}>
           Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
         </Text>
-        <Pressable style={boardStyles.checkButton} onPress={compareBoard}>
-          <Check size={18} color="#F8FAFC" />
-          <Text style={boardStyles.checkButtonText}>Đối chiếu</Text>
-        </Pressable>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={boardStyles.checkButton}
+          onPress={compareBoard}
+        >
+          {isComparing ? (
+            <ActivityIndicator size="small" color="#F8FAFC" />
+          ) : (
+            <Check size={18} color="#F8FAFC" />
+          )}
+          <Text style={boardStyles.checkButtonText}>
+            {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
+          </Text>
+        </TouchableOpacity>
+        {hasCompared ? (
+          <TouchableOpacity
+            accessibilityLabel="Đặt lại đối chiếu"
+            activeOpacity={0.8}
+            disabled={isComparing}
+            style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
+            onPress={resetComparison}
+          >
+            <RotateCcw size={19} color="#132238" />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </ScrollView>
   );

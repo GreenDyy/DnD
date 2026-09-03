@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   View,
   Text,
   TextInput,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -32,8 +33,13 @@ function ElectroTableScreen() {
 
   const [groupCount, setGroupCount] = useState('10');
   const [characterType, setCharacterType] = useState<CharacterType>('letter');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (isLoading) {
+      return;
+    }
+
     const normalizedValue = groupCount.trim();
 
     if (!/^\d+$/.test(normalizedValue)) {
@@ -58,10 +64,20 @@ function ElectroTableScreen() {
       return;
     }
 
-    navigation.navigate('ElectricBoardScreen', {
-      groupCount: parsedGroupCount,
-      characterType,
-    });
+    setIsLoading(true);
+
+    try {
+      await new Promise<void>(resolve => {
+        setTimeout(() => resolve(), 350);
+      });
+
+      navigation.navigate('ElectricBoardScreen', {
+        groupCount: parsedGroupCount,
+        characterType,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -81,7 +97,8 @@ function ElectroTableScreen() {
           value={groupCount}
           onChangeText={setGroupCount}
           keyboardType="number-pad"
-          style={boardStyles.setupInput}
+          editable={!isLoading}
+          style={[boardStyles.setupInput, isLoading && { opacity: 0.6 }]}
           placeholder="10"
         />
         <Text style={boardStyles.setupHelper}>Mỗi nhóm gồm 5 ký tự</Text>
@@ -91,13 +108,16 @@ function ElectroTableScreen() {
         </Text>
         <View style={boardStyles.setupChoiceRow}>
           {characterOptions.map(option => (
-            <Pressable
+            <TouchableOpacity
               key={option.value}
+              activeOpacity={0.8}
+              disabled={isLoading}
               style={[
                 boardStyles.setupChoice,
                 characterType === option.value && boardStyles.setupChoiceActive,
+                isLoading && { opacity: 0.5 },
               ]}
-              onPress={() => setCharacterType(option.value)}
+              onPress={() => !isLoading && setCharacterType(option.value)}
             >
               <Text
                 style={[
@@ -108,17 +128,26 @@ function ElectroTableScreen() {
               >
                 {option.label}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      <Pressable
-        style={boardStyles.setupGenerateButton}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        disabled={isLoading}
+        style={[boardStyles.setupGenerateButton, isLoading && { opacity: 0.7 }]}
         onPress={handleGenerate}
       >
-        <Text style={boardStyles.setupGenerateButtonText}>Tạo bảng</Text>
-      </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#F8FAFC" />
+          ) : null}
+          <Text style={boardStyles.setupGenerateButtonText}>
+            {isLoading ? 'Đang tạo...' : 'Tạo bảng'}
+          </Text>
+        </View>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

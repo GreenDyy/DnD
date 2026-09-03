@@ -45,6 +45,7 @@ export const characterAudioNameMap: Record<string, string> = {
 // Tạo một bộ nhớ đệm để lưu các đối tượng Sound đã được tải, tránh tải lại nhiều lần cùng một âm thanh.
 const soundCache: Record<string, Sound> = {};
 const soundLoadCache: Record<string, Promise<Sound> | undefined> = {};
+let activeSound: Sound | null = null;
 
 // Lấy tên tệp âm thanh cho ký tự đã cho, nếu không có thì trả về undefined
 export function getCharacterAudioName(char: string): string | undefined {
@@ -106,6 +107,7 @@ export async function playCharacterAudio(char: string): Promise<void> {
     getCharacterAudioName(normalized) ?? getCharacterAudioName('A') ?? 'a';
 
   const sound = await loadSound(nativeName);
+  activeSound = sound;
 
   await new Promise<void>((resolve, reject) => {
     sound.stop(() => {
@@ -114,8 +116,14 @@ export async function playCharacterAudio(char: string): Promise<void> {
           reject(new Error(`Không phát được âm thanh cho ký tự: ${char}`));
           return;
         }
+        activeSound = null;
         resolve();
       });
     });
   });
+}
+
+export function stopCharacterAudio(): void {
+  activeSound?.stop();
+  activeSound = null;
 }
