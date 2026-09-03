@@ -1,50 +1,46 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
-import { colors } from '../../theme/colors';
-import { ArrowLeft, Send } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalAIStore } from '../../store';
 import { knowledgeService } from '../../ai';
 import { LOCAL_AI_SYSTEM_PROMPT } from '../../ai/prompts';
-
-interface Message {
-  id: string;
-  role: 'user' | 'bot';
-  text: string;
-}
+import { parseIntent, getIntentNavigation, collectMissingParams, getFollowUpQuestion, generateIntentResponse } from '../../ai/IntentService';
+import type { ParsedIntent } from '../../ai/IntentService';
+import { MessageItem, ChatHeader, ChatInput } from '../../components/Chat';
+import type { Message } from '../../components/Chat';
+import { colors } from '../../theme/colors';
+import { AI_NAME, REPLIES } from '../../constants';
+import { morseAudio } from '../../audio/MorseAudioEngine';
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
 
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets();
-  const { progress, isReady, isLoading, error, initialize, generate } =
+  const { progress, isReady, isLoading, error, initialize, generate, cancelGenerate } =
     useLocalAIStore();
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'bot',
-      text: 'Xin chào! Mình là trợ lý AI Morse. Đang tải model, vui lòng chờ...',
+      text: 'Xin chào! Mình là trợ lý AI Morse. Đang khởi tạo...',
     },
   ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
+  const [pendingPlayChar, setPendingPlayChar] = useState<string | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     handleInitialize();
@@ -53,14 +49,10 @@ function ChatScreen() {
   const handleInitialize = async () => {
     try {
       await initialize();
-
       setMessages(prev =>
         prev.map(m =>
           m.id === '1'
-            ? {
-              ...m,
-              text: 'Xin chào! Mình là Mori, trợ lý AI báo vụ. Hãy hỏi mình về mã Morse!',
-            }
+            ? { ...m, text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!' }
             : m,
         ),
       );
@@ -68,68 +60,194 @@ function ChatScreen() {
       setMessages(prev =>
         prev.map(m =>
           m.id === '1'
-            ? {
-              ...m,
-              text: 'Không thể tải model. Vui lòng thử lại.',
-            }
+            ? { ...m, text: REPLIES.MODEL_ERROR }
             : m,
         ),
       );
     }
   };
 
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }, 50);
+  }, []);
+
+  const handleStop = useCallback(() => {
+    cancelGenerate();
+    setIsGenerating(false);
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last && last.text === '...') {
+        return [...prev.slice(0, -1)];
+      }
+      return prev;
+    });
+  }, [cancelGenerate]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isGenerating) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      text,
-    };
-
-    const thinkingMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'bot',
-      text: '...',
-    };
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', text };
+    const thinkingMessage: Message = { id: (Date.now() + 1).toString(), role: 'bot', text: '...' };
 
     setMessages(prev => [...prev, userMessage, thinkingMessage]);
     setInput('');
     setIsGenerating(true);
-
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    scrollToBottom();
 
     try {
       let reply: string;
+      let actionMsg: Message['action'] | undefined;
 
-      if (isReady) {
-        // Kiểm tra câu hỏi có nằm trong phạm vi Morse không
-        if (!knowledgeService.isRelevant(text)) {
-          reply = 'Mình là Mori AI, trợ lý chuyên về học báo vụ Morse. Mình chỉ có thể hỗ trợ bạn về mã Morse và kỹ thuật báo vụ thôi nhé! Bạn có muốn hỏi gì về Morse không?';
+      // === CASE 0: Đang chờ xác nhận phát âm thanh Morse ===
+      if (pendingPlayChar) {
+        if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
+          await morseAudio.start();
+          morseAudio.setFrequency(600);
+          morseAudio.setWpm(8);
+          morseAudio.setVolume(1);
+          await morseAudio.playText(pendingPlayChar);
+          reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
+          setPendingPlayChar(null);
+
+          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+          return;
+        }
+        // Không match "có" → silent cancel, rơi xuống xử lý câu mới
+        setPendingPlayChar(null);
+      }
+
+      // === CASE 1: Có pendingIntent đang chờ collect params ===
+      if (pendingIntent) {
+        const result = collectMissingParams(pendingIntent, text);
+        const updatedIntent: ParsedIntent = {
+          ...pendingIntent,
+          params: result.params,
+          isComplete: result.isComplete,
+          missingParams: result.missingParams,
+        };
+
+        if (result.isComplete) {
+          // Đủ params → finalize
+          const finalIntent: ParsedIntent = {
+            ...updatedIntent,
+            response: (() => {
+              const { getIntentNavigation: _, ...rest } = updatedIntent;
+              return '';
+            })(),
+          };
+          reply = generateIntentResponse(updatedIntent.type, result.params);
+
+          const navTarget = getIntentNavigation(updatedIntent.type, result.params);
+          actionMsg = navTarget ? {
+            label: updatedIntent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
+            screen: navTarget.screen,
+            params: navTarget.params,
+          } : undefined;
+
+          setPendingIntent(null);
         } else {
-          // RAG: KnowledgeService tìm context → ghép prompt → LLM generate
+          // Còn thiếu → hỏi tiếp
+          reply = getFollowUpQuestion(updatedIntent);
+          setPendingIntent(updatedIntent);
+        }
+
+        const botMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          role: 'bot',
+          text: reply,
+          action: actionMsg,
+        };
+
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 400);
+        return;
+      }
+
+      // === CASE 2: Parse intent mới ===
+      const intent = parseIntent(text);
+      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+
+      if (intent.type !== 'ask_morse') {
+        if (intent.isComplete) {
+          // Đủ params → show action
+          reply = intent.response;
+          const navTarget = getIntentNavigation(intent.type, intent.params);
+          actionMsg = navTarget ? {
+            label: intent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
+            screen: navTarget.screen,
+            params: navTarget.params,
+          } : undefined;
+
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+            action: actionMsg,
+          };
+
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+        } else {
+          // Thiếu params → hỏi & lưu pendingIntent
+          reply = getFollowUpQuestion(intent);
+          setPendingIntent(intent);
+
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+          };
+
+          setTimeout(() => {
+            setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          }, 400);
+        }
+        return;
+      }
+
+      // === CASE 3: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
+      const askResult = knowledgeService.ask(text);
+
+      if (askResult.type === 'character') {
+        // Hỏi về ký tự → trả lời trực tiếp + hỏi phát âm
+        const char = askResult.answer;
+        reply = askResult.message;
+        reply += `\n\nBạn có muốn tôi phát tín hiệu ${char} không?`;
+        setPendingPlayChar(char);
+
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setTimeout(() => {
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        }, 400);
+        return;
+      }
+
+      // Các loại query khác → qua LLM
+      if (isReady) {
+        if (!knowledgeService.isRelevant(text)) {
+          reply = REPLIES.OUT_OF_SCOPE;
+        } else {
           const context = knowledgeService.getContext(text);
           let fullPrompt = `Context từ knowledge base:\n${context}\n\nCâu hỏi của người dùng: ${text}`;
 
           console.log('🔍 [RAG] Context:', context);
           console.log('📝 [RAG] Full prompt:', fullPrompt);
 
-          // Truncate nếu prompt quá dài để tránh crash native
           if (fullPrompt.length > MAX_PROMPT_LENGTH) {
             fullPrompt = fullPrompt.substring(0, MAX_PROMPT_LENGTH);
             console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
           }
 
-          // Kiểm tra token budget trước khi gọi LLM
           const maxTokensForGen = 256;
-          const budget = knowledgeService.checkTokenBudget(
-            LOCAL_AI_SYSTEM_PROMPT,
-            fullPrompt,
-            maxTokensForGen,
-          );
+          const budget = knowledgeService.checkTokenBudget(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
 
           console.log('💰 [Token] Budget:', budget);
 
@@ -137,43 +255,33 @@ function ChatScreen() {
             reply = `⚠️ ${budget.message}`;
           } else {
             reply = await generate(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
-            reply = reply.trim() || 'Xin lỗi, mình không thể trả lời lúc này.';
+            reply = reply.trim() || REPLIES.GENERATE_ERROR;
           }
         }
       } else {
-        // Fallback: KnowledgeService rule-based
-        const result = knowledgeService.ask(text);
-        reply = result.message;
+        reply = askResult.message;
       }
 
-      const botMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: 'bot',
-        text: reply,
-      };
-
+      const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
       setMessages(prev => [...prev.slice(0, -1), botMessage]);
     } catch (err: any) {
-      const errorMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: 'bot',
-        text: `Lỗi: ${err.message || 'Không thể generate'}`,
-      };
+      if (err?.message === 'CANCELLED') {
+        return;
+      }
+      const errorMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: `Lỗi: ${err.message || 'Không thể generate'}` };
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
     } finally {
       setIsGenerating(false);
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      scrollToBottom();
     }
-  }, [input, isGenerating, isReady, generate]);
+  }, [input, isGenerating, isReady, pendingIntent, generate, scrollToBottom, navigation]);
 
   const statusText = isLoading
-    ? `Đang tải model... ${progress}%`
+    ? `Đang tải... ${progress}%`
     : isReady
-      ? 'Model sẵn sàng'
+      ? 'Đang hoạt động'
       : error
-        ? `Lỗi: ${error}`
+        ? 'Lỗi kết nối'
         : 'Đang khởi tạo...';
 
   const statusColor = isReady
@@ -184,170 +292,70 @@ function ChatScreen() {
         ? colors.error
         : colors.textSecondary;
 
+  const handleAction = useCallback((action?: Message['action']) => {
+    if (action) {
+      (navigation as any).navigate(action.screen, action.params);
+    }
+  }, [navigation]);
+
+  const keyExtractor = useCallback((item: Message) => item.id, []);
+
+  const renderItem = useCallback(({ item }: { item: Message }) => (
+    <MessageItem item={item} onAction={handleAction} />
+  ), [handleAction]);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>AI Morse</Text>
-          <Text style={[styles.status, { color: statusColor }]}>{statusText}</Text>
-        </View>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}>
+        <ChatHeader
+          statusText={statusText}
+          statusColor={statusColor}
+          onBack={() => navigation.goBack()}
+        />
 
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.messageList}
-        contentContainerStyle={styles.messageListContent}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}>
-        {messages.map(msg => (
-          <View
-            key={msg.id}
-            style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleBot]}>
-            {msg.text === '...' ? (
-              <ActivityIndicator size="small" color={colors.textSecondary} />
-            ) : (
-              <Text
-                style={[
-                  styles.bubbleText,
-                  msg.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextBot,
-                ]}>
-                {msg.text}
-              </Text>
-            )}
-          </View>
-        ))}
-      </ScrollView>
+        <FlatList
+          ref={flatListRef}
+          style={styles.messageList}
+          contentContainerStyle={styles.messageListContent}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          onContentSizeChange={scrollToBottom}
+        />
 
-      <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.inputWrap}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder={isReady ? 'Hỏi về Morse...' : 'Đang tải model...'}
-            placeholderTextColor={colors.textSecondary}
-            editable={!isGenerating && !isLoading}
-            onSubmitEditing={handleSend}
-            maxLength={MAX_INPUT_LENGTH}
-          />
-          <Text style={styles.charCount}>{input.length}/{MAX_INPUT_LENGTH}</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.sendBtn, (isGenerating || isLoading) && styles.sendBtnDisabled]}
-          onPress={handleSend}
-          disabled={isGenerating || isLoading}>
-          <Send size={20} color={colors.white} />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        <ChatInput
+          input={input}
+          isReady={isReady}
+          isGenerating={isGenerating}
+          isLoading={isLoading}
+          onChangeText={setInput}
+          onSend={handleSend}
+          onStop={handleStop}
+          maxLength={MAX_INPUT_LENGTH}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  status: {
-    fontSize: 12,
-    marginTop: 2,
+    backgroundColor: '#E2E8F0',
   },
   messageList: {
     flex: 1,
   },
   messageListContent: {
-    padding: 20,
-    gap: 12,
-  },
-  bubble: {
-    maxWidth: '85%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-  },
-  bubbleUser: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  bubbleBot: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.surface,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  bubbleTextUser: {
-    color: colors.white,
-  },
-  bubbleTextBot: {
-    color: colors.text,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    gap: 10,
-  },
-  inputWrap: {
-    flex: 1,
-    position: 'relative',
-  },
-  input: {
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 18,
-    paddingRight: 52,
-    fontSize: 15,
-    color: colors.text,
-  },
-  charCount: {
-    position: 'absolute',
-    right: 14,
-    top: 12,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendBtnDisabled: {
-    opacity: 0.5,
+    padding: 16,
+    paddingBottom: 8,
   },
 });
 

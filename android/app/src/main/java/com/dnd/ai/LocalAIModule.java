@@ -40,20 +40,6 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void testNative(Promise promise) {
-        try {
-            long result = LlamaNative.testNative();
-            promise.resolve((double) result);
-        } catch (Exception e) {
-            promise.reject(
-                    "NATIVE_TEST_ERROR",
-                    e.getMessage(),
-                    e
-            );
-        }
-    }
-
-    @ReactMethod
     public void checkModel(Promise promise) {
         try {
             AssetManager assetManager =
@@ -242,6 +228,12 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
                 promise.reject("GENERATION_ERROR", e.getMessage(), e);
             }
         }).start();
+    }
+
+    @ReactMethod
+    public void stopGenerate() {
+        Log.i(TAG, "stopGenerate called");
+        LlamaNative.stopGenerate();
     }
 
     private void sendProgress(int progress) {

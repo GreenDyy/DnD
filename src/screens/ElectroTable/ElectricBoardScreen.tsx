@@ -10,18 +10,20 @@ import {
 import Slider from '@react-native-community/slider';
 import { ArrowLeft, Check, Pause, Play, RotateCcw } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { playCharacterAudio, stopCharacterAudio } from '../../assets/audioMap';
 import { generateMorseBoard } from '../../utils/morseGenerator';
 import { boardStyles } from './boardStyles';
-import { type RootStackParamList } from '../../navigation/AppNavigator';
+import { type RootStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 
 const defaultBoardParams = {
   groupCount: 10,
   characterType: 'letter' as const,
+  wpm: 20,
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
@@ -35,8 +37,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   );
   const groupCellWidth =
     (groupAreaWidth - (groupsPerRow - 1) * 8) / groupsPerRow;
-  const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(20);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -46,6 +46,8 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const cpm = wpm * 5;
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
+  const [frequency, setFrequency] = useState(600);
+  const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
     [groupCount, characterType],
@@ -125,85 +127,85 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   };
 
   return (
-    <ScrollView
-      style={boardStyles.container}
-      contentContainerStyle={boardStyles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={boardStyles.headerRow}>
-        <TouchableOpacity
-          accessibilityLabel="Quay lại màn hình thiết lập"
+    <SafeAreaView style={boardStyles.container}>
+      <ScrollView
+        contentContainerStyle={boardStyles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={boardStyles.headerRow}>
+          <TouchableOpacity
+            accessibilityLabel="Quay lại màn hình thiết lập"
           activeOpacity={0.8}
           disabled={isLoading}
-          style={[boardStyles.backButton, isLoading && { opacity: 0.5 }]}
-          onPress={() => !isLoading && navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#132238" />
-        </TouchableOpacity>
-        <Text style={boardStyles.headerLabel}>BẢNG ĐIỆN</Text>
-        <View style={boardStyles.headerSpacer} />
-      </View>
+            style={[boardStyles.backButton, isLoading && { opacity: 0.5 }]}
+            onPress={() => !isLoading && navigation.goBack()}
+          >
+            <ArrowLeft size={20} color="#132238" />
+          </TouchableOpacity>
+          <Text style={boardStyles.headerLabel}>BẢNG ĐIỆN</Text>
+          <View style={boardStyles.headerSpacer} />
+        </View>
 
-      <View style={boardStyles.hero}>
-        <Text style={boardStyles.eyebrow}>BÀI LUYỆN MORSE</Text>
-        <Text
-          style={[
-            boardStyles.title,
-            screenWidth < 360 && boardStyles.titleSmall,
-          ]}
-        >
-          Nghe và thu báo
-        </Text>
-        <Text style={boardStyles.subtitle}>
-          Phát tín hiệu, ghi lại nhóm ký tự bạn nghe được và kiểm tra kết quả.
-        </Text>
-        <View style={boardStyles.metaRow}>
-          <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
-          <Text style={boardStyles.meta}>{frequency} HZ</Text>
-          <Text style={boardStyles.meta}>{cpm} chữ / phút</Text>
+        <View style={boardStyles.hero}>
+          <Text style={boardStyles.eyebrow}>BÀI LUYỆN MORSE</Text>
+          <Text
+            style={[
+              boardStyles.title,
+              screenWidth < 360 && boardStyles.titleSmall,
+            ]}
+          >
+            Nghe và thu báo
+          </Text>
+          <Text style={boardStyles.subtitle}>
+            Phát tín hiệu, ghi lại nhóm ký tự bạn nghe được và kiểm tra kết quả.
+          </Text>
+          <View style={boardStyles.metaRow}>
+            <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
+            <Text style={boardStyles.meta}>{frequency} HZ</Text>
+            <Text style={boardStyles.meta}>{cpm} chữ / phút</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={boardStyles.settingsPanel}>
-        <View style={boardStyles.settingRow}>
-          <Text style={boardStyles.settingLabel}>TẦN SỐ</Text>
-          <Text style={boardStyles.settingValue}>{frequency} Hz</Text>
+        <View style={boardStyles.settingsPanel}>
+          <View style={boardStyles.settingRow}>
+            <Text style={boardStyles.settingLabel}>TẦN SỐ</Text>
+            <Text style={boardStyles.settingValue}>{frequency} Hz</Text>
+          </View>
+          <Slider
+            minimumValue={100}
+            maximumValue={3000}
+            step={10}
+            value={frequency}
+            onValueChange={setFrequency}
+          />
+          <View style={boardStyles.rangeRow}>
+            <Text style={boardStyles.rangeText}>100 Hz</Text>
+            <Text style={boardStyles.rangeText}>3000 Hz</Text>
+          </View>
         </View>
-        <Slider
-          minimumValue={100}
-          maximumValue={3000}
-          step={10}
-          value={frequency}
-          onValueChange={setFrequency}
-        />
-        <View style={boardStyles.rangeRow}>
-          <Text style={boardStyles.rangeText}>100 Hz</Text>
-          <Text style={boardStyles.rangeText}>3000 Hz</Text>
-        </View>
-      </View>
 
-      <View style={boardStyles.settingsPanel}>
-        <View style={boardStyles.settingRow}>
-          <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
-          <Text style={boardStyles.settingValue}>{cpm} chữ / phút</Text>
+        <View style={boardStyles.settingsPanel}>
+          <View style={boardStyles.settingRow}>
+            <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
+            <Text style={boardStyles.settingValue}>{cpm} chữ / phút</Text>
+          </View>
+          <Slider
+            minimumValue={1}
+            maximumValue={100}
+            step={1}
+            value={wpm}
+            onValueChange={setWpm}
+          />
+          <View style={boardStyles.rangeRow}>
+            <Text style={boardStyles.rangeText}>5 chữ / phút</Text>
+            <Text style={boardStyles.rangeText}>500 chữ / phút</Text>
+          </View>
         </View>
-        <Slider
-          minimumValue={1}
-          maximumValue={100}
-          step={1}
-          value={wpm}
-          onValueChange={setWpm}
-        />
-        <View style={boardStyles.rangeRow}>
-          <Text style={boardStyles.rangeText}>5 chữ / phút</Text>
-          <Text style={boardStyles.rangeText}>500 chữ / phút</Text>
-        </View>
-      </View>
 
-      <View style={boardStyles.sectionRow}>
-        <Text style={boardStyles.sectionTitle}>Bảng ký tự</Text>
-        <Text style={boardStyles.sectionHint}>5 KÝ TỰ / NHÓM</Text>
-      </View>
+        <View style={boardStyles.sectionRow}>
+          <Text style={boardStyles.sectionTitle}>Bảng ký tự</Text>
+          <Text style={boardStyles.sectionHint}>5 KÝ TỰ / NHÓM</Text>
+        </View>
 
       <View style={boardStyles.boardPanel}>
         <View style={boardStyles.marker}>
@@ -288,10 +290,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         ) : null}
       </View>
 
-      <View style={boardStyles.sectionRow}>
-        <Text style={boardStyles.sectionTitle}>Tập thu báo</Text>
-        <Text style={boardStyles.sectionHint}>ĐỐI CHIẾU SAU</Text>
-      </View>
+        <View style={boardStyles.sectionRow}>
+          <Text style={boardStyles.sectionTitle}>Tập thu báo</Text>
+          <Text style={boardStyles.sectionHint}>ĐỐI CHIẾU SAU</Text>
+        </View>
 
       <View style={boardStyles.comparePanel}>
         <Text style={boardStyles.compareHelp}>

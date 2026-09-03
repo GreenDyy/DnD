@@ -3,14 +3,17 @@ import type { CharacterType } from '../utils/morseGenerator';
 export type RootStackParamList = {
   SplashScreen: undefined;
   HomeScreen: undefined;
-  DnDScreen: undefined;
+  DnDScreen: { speed?: number };
   ElectroTableScreen: undefined;
   ElectricBoardScreen: {
     groupCount: number;
     characterType: CharacterType;
+    numberFormat?: 'short' | 'normal';
+    wpm?: number;
   };
   ChatScreen: undefined;
-  Playground: undefined;
+  PlaygroundScreen: undefined;
+
 };
 
 export type PlaygroundStackParamList = {

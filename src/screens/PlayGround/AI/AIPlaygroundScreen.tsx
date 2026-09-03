@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PlaygroundStackParamList } from '../../../types/navigation';
 import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader } from 'lucide-react-native';
 import { colors } from '../../../theme/colors';
-import Button from '../../../components/Button/Button';
+import { Button } from '../../../components/Common';
 import Input from '../../../components/Input/Input';
 import { useLocalAIStore } from '../../../store';
 import knowledgeService from '../../../ai/KnowledgeService';
@@ -20,7 +21,7 @@ import { LOCAL_AI_SYSTEM_PROMPT } from '../../../ai/prompts';
 
 function AIPlaygroundScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PlaygroundStackParamList>>();
-  const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate, testNative } =
+  const { modelPath, progress, isReady, isLoading, error, prepare, loadModel, generate } =
     useLocalAIStore();
 
   const [query, setQuery] = useState('');
@@ -32,15 +33,6 @@ function AIPlaygroundScreen() {
 
   const handlePrepareModel = async () => {
     await prepare();
-  };
-
-  const handleTestNative = async () => {
-    try {
-      const result = await testNative();
-      Alert.alert('Native test', `Result: ${result}`);
-    } catch (err: any) {
-      Alert.alert('Native test failed', err?.message || 'Native call failed');
-    }
   };
 
   const handleLoadModel = async () => {
@@ -90,7 +82,7 @@ function AIPlaygroundScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color={colors.text} />
@@ -198,12 +190,6 @@ function AIPlaygroundScreen() {
           </TouchableOpacity>
 
           <Button
-            title="Test Native"
-            onPress={handleTestNative}
-            style={{ marginTop: 12 }}
-          />
-
-          <Button
             title="Load Model"
             onPress={handleLoadModel}
             disabled={!modelPath || isLoading}
@@ -275,7 +261,7 @@ function AIPlaygroundScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -289,7 +275,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 16,
   },
   headerTitle: {
