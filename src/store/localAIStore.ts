@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { NativeEventEmitter, NativeModules } from 'react-native';
+import { LOCAL_AI_SYSTEM_PROMPT } from '../ai/prompts';
 
 const LocalAI = NativeModules.LocalAI;
 const eventEmitter = LocalAI ? new NativeEventEmitter(LocalAI) : null;
@@ -13,12 +14,14 @@ interface LocalAIState {
   isCancelled: boolean;
   prepare: () => Promise<string>;
   loadModel: (path: string) => Promise<boolean>;
+  warmup: (systemPrompt: string) => Promise<boolean>;
   initialize: () => Promise<void>;
   generate: (systemPrompt: string, prompt: string, maxTokens?: number) => Promise<string>;
   cancelGenerate: () => void;
 }
 
 let initializationPromise: Promise<void> | null = null;
+let warmupPromise: Promise<boolean> | null = null;
 
 export const useLocalAIStore = create<LocalAIState>((set, get) => ({
   modelPath: null,
@@ -66,6 +69,26 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
     }
   },
 
+  warmup: async (systemPrompt: string) => {
+    if (!LocalAI) {
+      throw new Error('LocalAI native module is not registered or not ready yet.');
+    }
+    if (!get().isReady) {
+      throw new Error('Load the model before warming up.');
+    }
+    if (warmupPromise) return warmupPromise;
+
+    const request = LocalAI.warmup(systemPrompt).then((warmedUp: boolean) => {
+      if (!warmedUp) throw new Error('Cannot cache system prompt.');
+      return true;
+    }).finally(() => {
+      warmupPromise = null;
+    });
+    warmupPromise = request;
+
+    return request;
+  },
+
   initialize: async () => {
     if (get().isReady || initializationPromise) {
       return initializationPromise || Promise.resolve();
@@ -75,6 +98,7 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
       try {
         const path = await get().prepare();
         await get().loadModel(path);
+        await get().warmup(LOCAL_AI_SYSTEM_PROMPT);
       } finally {
         initializationPromise = null;
       }

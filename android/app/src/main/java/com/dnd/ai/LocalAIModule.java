@@ -40,6 +40,14 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void addListener(String eventName) {
+    }
+
+    @ReactMethod
+    public void removeListeners(int count) {
+    }
+
+    @ReactMethod
     public void checkModel(Promise promise) {
         try {
             AssetManager assetManager =
@@ -188,6 +196,28 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
                     e
             );
         }
+    }
+
+    @ReactMethod
+    public void warmup(String systemPrompt, Promise promise) {
+        if (modelHandle == 0) {
+            promise.reject("MODEL_NOT_LOADED", "Load the model before warming up");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                boolean warmedUp = LlamaNative.warmup(systemPrompt);
+                if (!warmedUp) {
+                    promise.reject("WARMUP_FAILED", "Cannot cache system prompt");
+                    return;
+                }
+                promise.resolve(true);
+            } catch (Exception e) {
+                Log.e(TAG, "warmup failed", e);
+                promise.reject("WARMUP_ERROR", e.getMessage(), e);
+            }
+        }).start();
     }
 
     @ReactMethod

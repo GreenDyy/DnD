@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
+  AppState,
   View,
   StyleSheet,
   FlatList,
@@ -26,14 +27,14 @@ const MAX_PROMPT_LENGTH = 800;
 
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { progress, isReady, isLoading, error, initialize, generate, cancelGenerate } =
+  const { progress, isReady, isLoading, error, warmup, generate, cancelGenerate } =
     useLocalAIStore();
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'bot',
-      text: 'Xin chào! Mình là trợ lý AI Morse. Đang khởi tạo...',
+      text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!',
     },
   ]);
   const [input, setInput] = useState('');
@@ -43,29 +44,16 @@ function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    handleInitialize();
-  }, []);
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active' && isReady) {
+        warmup(LOCAL_AI_SYSTEM_PROMPT).catch(error => {
+          console.warn('[LocalAI] resume warmup failed', error);
+        });
+      }
+    });
 
-  const handleInitialize = async () => {
-    try {
-      await initialize();
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === '1'
-            ? { ...m, text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!' }
-            : m,
-        ),
-      );
-    } catch (error) {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === '1'
-            ? { ...m, text: REPLIES.MODEL_ERROR }
-            : m,
-        ),
-      );
-    }
-  };
+    return () => subscription.remove();
+  }, [isReady, warmup]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {

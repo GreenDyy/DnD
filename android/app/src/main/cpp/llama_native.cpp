@@ -61,41 +61,6 @@ static std::string formatChatPrompt(
     return formattedPrompt;
 }
 
-static std::string formatSystemPrompt(
-        const llama_model* model,
-        const std::string& systemPrompt) {
-    const llama_chat_message message = {"system", systemPrompt.c_str()};
-    const char* chatTemplate = llama_model_chat_template(model, nullptr);
-    std::string formattedPrompt;
-
-    if (chatTemplate != nullptr && chatTemplate[0] != '\0') {
-        const int32_t requiredSize = llama_chat_apply_template(
-                chatTemplate, &message, 1, true, nullptr, 0);
-        if (requiredSize > 0) {
-            std::vector<char> formattedBuffer(static_cast<size_t>(requiredSize) + 1);
-            const int32_t formattedSize = llama_chat_apply_template(
-                    chatTemplate,
-                    &message,
-                    1,
-                    true,
-                    formattedBuffer.data(),
-                    static_cast<int32_t>(formattedBuffer.size()));
-            if (formattedSize > 0) {
-                formattedPrompt.assign(
-                        formattedBuffer.data(), static_cast<size_t>(formattedSize));
-            }
-        }
-    }
-
-    if (formattedPrompt.empty()) {
-        formattedPrompt =
-                "<|im_start|>system\n" + systemPrompt +
-                "<|im_end|>\n<|im_start|>assistant\n";
-    }
-
-    return formattedPrompt;
-}
-
 static bool tokenizePrompt(
         const llama_vocab* vocab,
         const std::string& prompt,
@@ -135,6 +100,52 @@ static bool saveContextState(llama_context* context) {
         return false;
     }
     cachedSystemState.resize(savedSize);
+    return true;
+}
+
+static bool warmupSystemPrompt(
+        llama_model* model,
+        llama_context* context,
+        const std::string& systemPrompt) {
+    if (cachedSystemPrompt == systemPrompt &&
+            !cachedSystemState.empty() &&
+            !cachedPrefixTokens.empty()) {
+        LOCAL_AI_LOG("warmup: system prompt cache already ready");
+        return true;
+    }
+
+    const std::string formattedPrompt = formatChatPrompt(model, systemPrompt, "");
+    const llama_vocab* vocab = llama_model_get_vocab(model);
+    std::vector<llama_token> tokens;
+    if (!tokenizePrompt(vocab, formattedPrompt, tokens)) {
+        LOCAL_AI_LOG("warmup: failed to tokenize system prompt");
+        return false;
+    }
+
+    constexpr int32_t batchSize = 512;
+    llama_memory_clear(llama_get_memory(context), true);
+    for (int32_t i = 0; i < static_cast<int32_t>(tokens.size()); i += batchSize) {
+        const int32_t chunkSize = std::min(
+                batchSize, static_cast<int32_t>(tokens.size()) - i);
+        llama_batch batch = llama_batch_get_one(tokens.data() + i, chunkSize);
+        if (llama_decode(context, batch) != 0) {
+            LOCAL_AI_LOG("warmup: system prompt decode failed at offset=%d", i);
+            cachedSystemPrompt.clear();
+            cachedSystemState.clear();
+            cachedPrefixTokens.clear();
+            return false;
+        }
+    }
+
+    cachedSystemPrompt = systemPrompt;
+    cachedPrefixTokens = std::move(tokens);
+    if (!saveContextState(context)) {
+        cachedSystemPrompt.clear();
+        cachedPrefixTokens.clear();
+        return false;
+    }
+
+    LOCAL_AI_LOG("warmup: cached system prompt tokens=%zu", cachedPrefixTokens.size());
     return true;
 }
 
@@ -195,6 +206,8 @@ Java_com_dnd_ai_LlamaNative_loadModel(
             LOCAL_AI_LOG("loadModel: context creation failed");
             llama_model_free(model);
             model = nullptr;
+        } else {
+            loadedModel = model;
         }
     }
 
@@ -392,4 +405,29 @@ Java_com_dnd_ai_LlamaNative_stopGenerate(
 ) {
     LOCAL_AI_LOG("stopGenerate: setting stop flag");
     stopRequested.store(true);
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_dnd_ai_LlamaNative_warmup(
+        JNIEnv* env,
+        jclass clazz,
+        jstring systemPrompt
+) {
+    if (systemPrompt == nullptr) {
+        return JNI_FALSE;
+    }
+
+    std::lock_guard<std::mutex> lock(inferenceMutex);
+    if (loadedModel == nullptr || loadedContext == nullptr) {
+        LOCAL_AI_LOG("warmup: model is not loaded");
+        return JNI_FALSE;
+    }
+
+    const char* systemPromptText = env->GetStringUTFChars(systemPrompt, nullptr);
+    const std::string systemPromptValue(systemPromptText);
+    env->ReleaseStringUTFChars(systemPrompt, systemPromptText);
+    return warmupSystemPrompt(loadedModel, loadedContext, systemPromptValue)
+            ? JNI_TRUE
+            : JNI_FALSE;
 }
