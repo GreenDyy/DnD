@@ -19,9 +19,11 @@ function AppNavigator() {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="DnDScreen" component={DnDScreen} />
       <Stack.Screen name="ElectroTableScreen" component={ElectroTableScreen} />
-      <Stack.Screen name="ElectricBoardScreen" component={ElectricBoardScreen} />
-      <Stack.Screen name="PlaygroundScreen"  component={PlaygroundNavigator}
+      <Stack.Screen
+        name="ElectricBoardScreen"
+        component={ElectricBoardScreen}
       />
+      <Stack.Screen name="PlaygroundScreen" component={PlaygroundNavigator} />
       <Stack.Screen name="ChatScreen" component={DrawerNavigator} />
     </Stack.Navigator>
   );
