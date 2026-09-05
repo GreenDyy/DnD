@@ -8,6 +8,8 @@ public class LlamaNative {
 
     public static native long loadModel(String modelPath);
 
+    public static native boolean warmup(String systemPrompt);
+
     public static native void freeModel(long modelHandle);
 
     public static native String generate(

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
   View,
   StyleSheet,
   Image,
-  ActivityIndicator,
   Text,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -16,29 +16,42 @@ import { useLocalAIStore } from '../../store';
 function SplashScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isReady, isLoading, error, initialize } = useLocalAIStore();
-  const startTime = useRef(Date.now());
-  const navigated = useRef(false);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const progressAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 1700,
+          useNativeDriver: false,
+        }),
+        Animated.timing(progress, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+
+    progressAnimation.start();
+
+    return () => {
+      progressAnimation.stop();
+    };
+  }, [progress]);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
   useEffect(() => {
-    if (navigated.current) return;
     if (!isReady && !error) return;
 
-    const elapsed = Date.now() - startTime.current;
-    const remaining = Math.max(0, 3000 - elapsed);
-
-    const timer = setTimeout(() => {
-      navigated.current = true;
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'HomeScreen' }],
-      });
-    }, remaining);
-
-    return () => clearTimeout(timer);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'HomeScreen' }],
+    });
   }, [isReady, error]);
 
   return (
@@ -51,16 +64,29 @@ function SplashScreen() {
         />
 
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.success} />
           <Text style={styles.loadingText}>
             {isLoading
-              ? 'Đang khởi tạo model...'
+              ? 'Đang khởi tạo mô hình...'
               : isReady
                 ? 'Sẵn sàng!'
                 : error
                   ? 'Đang tải...'
                   : 'Đang khởi tạo...'}
           </Text>
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['12%', '92%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.loadingHint}>MORI AI / DND</Text>
         </View>
       </View>
     </View>
@@ -73,7 +99,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   bgLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   bg: {
     width: '100%',
@@ -92,6 +118,25 @@ const styles = StyleSheet.create({
   loadingWrap: {
     marginTop: 30,
     alignItems: 'center',
+  },
+  progressTrack: {
+    width: 180,
+    height: 4,
+    marginTop: 18,
+    overflow: 'hidden',
+    borderRadius: 2,
+    backgroundColor: '#DCFCE7',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: colors.success,
+  },
+  loadingHint: {
+    marginTop: 12,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: '#94A3B8',
   },
   loadingText: {
     marginTop: 12,

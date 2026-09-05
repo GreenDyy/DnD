@@ -6,6 +6,7 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.microsoft.codepush.react.CodePush 
 import com.dnd.ai.LocalAIPackage
 
 class MainApplication : Application(), ReactApplication {
@@ -19,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
           // add(MyReactNativePackage())
           add(LocalAIPackage())
         },
+        jsBundleFilePath = CodePush.getJSBundleFile(),
     )
   }
 
