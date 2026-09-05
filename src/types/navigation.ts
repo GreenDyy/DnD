@@ -26,6 +26,4 @@ export type PlaygroundStackParamList = {
     groupCount: number;
     characterType: CharacterType;
   };
-  MQTTPlaygroundScreen: undefined;
-  CameraPlaygroundScreen: undefined;
 };
