@@ -43,11 +43,11 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const [isComparing, setIsComparing] = useState(false);
   const [hasCompared, setHasCompared] = useState(false);
   const compareSessionRef = useRef(0);
-  const cpm = wpm * 5;
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
   const [frequency, setFrequency] = useState(600);
   const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
+  const cpm = wpm * 5;
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
     [groupCount, characterType],
@@ -135,8 +135,8 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={boardStyles.headerRow}>
           <TouchableOpacity
             accessibilityLabel="Quay lại màn hình thiết lập"
-          activeOpacity={0.8}
-          disabled={isLoading}
+            activeOpacity={0.8}
+            disabled={isLoading}
             style={[boardStyles.backButton, isLoading && { opacity: 0.5 }]}
             onPress={() => !isLoading && navigation.goBack()}
           >
@@ -207,125 +207,127 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           <Text style={boardStyles.sectionHint}>5 KÝ TỰ / NHÓM</Text>
         </View>
 
-      <View style={boardStyles.boardPanel}>
-        <View style={boardStyles.marker}>
-          <Text style={boardStyles.markerText}>=</Text>
-        </View>
-        <View style={boardStyles.boardGrid}>
-          {Array.from(
-            { length: Math.ceil(groups.length / groupsPerRow) },
-            (_, rowIndex) => {
-              const rowGroups = groups.slice(
-                rowIndex * groupsPerRow,
-                rowIndex * groupsPerRow + groupsPerRow,
-              );
-              const endNumber = Math.min(
-                (rowIndex + 1) * groupsPerRow,
-                groups.length,
-              );
+        <View style={boardStyles.boardPanel}>
+          <View style={boardStyles.marker}>
+            <Text style={boardStyles.markerText}>=</Text>
+          </View>
+          <View style={boardStyles.boardGrid}>
+            {Array.from(
+              { length: Math.ceil(groups.length / groupsPerRow) },
+              (_, rowIndex) => {
+                const rowGroups = groups.slice(
+                  rowIndex * groupsPerRow,
+                  rowIndex * groupsPerRow + groupsPerRow,
+                );
+                const endNumber = Math.min(
+                  (rowIndex + 1) * groupsPerRow,
+                  groups.length,
+                );
 
-              return (
-                <View
-                  key={`board-row-${rowIndex}`}
-                  style={boardStyles.boardRow}
-                >
-                  <View style={boardStyles.groupsInRow}>
-                    {rowGroups.map((group, groupIndex) => (
-                      <View
-                        key={`${group}-${groupIndex}`}
-                        style={[
-                          boardStyles.groupCell,
-                          { flex: 0,
-                            width: groupCellWidth,
-                            minWidth: groupCellWidth,
-                          },
-                        ]}
-                      >
-                        <Text style={boardStyles.groupText}>{group}</Text>
-                      </View>
-                    ))}
+                return (
+                  <View
+                    key={`board-row-${rowIndex}`}
+                    style={boardStyles.boardRow}
+                  >
+                    <View style={boardStyles.groupsInRow}>
+                      {rowGroups.map((group, groupIndex) => (
+                        <View
+                          key={`${group}-${groupIndex}`}
+                          style={[
+                            boardStyles.groupCell,
+                            {
+                              flex: 0,
+                              width: groupCellWidth,
+                              minWidth: groupCellWidth,
+                            },
+                          ]}
+                        >
+                          <Text style={boardStyles.groupText}>{group}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={boardStyles.rowNumber}>{endNumber}</Text>
                   </View>
-                  <Text style={boardStyles.rowNumber}>{endNumber}</Text>
-                </View>
-              );
-            },
-          )}
+                );
+              },
+            )}
+          </View>
+          <View style={[boardStyles.marker, boardStyles.endMarker]}>
+            <Text style={boardStyles.markerText}>+</Text>
+          </View>
         </View>
-        <View style={[boardStyles.marker, boardStyles.endMarker]}>
-          <Text style={boardStyles.markerText}>+</Text>
-        </View>
-      </View>
 
-      <View style={boardStyles.controlsRow}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={boardStyles.playButton}
-          onPress={playBoard}
-        >
-          {isPlaying ? (
-            <Pause size={18} color="#F8FAFC" />
-          ) : (
-            <Play size={18} color="#F8FAFC" fill="#F8FAFC" />
-          )}
-          <Text style={boardStyles.playButtonText}>
-            {isPlaying ? 'Tạm dừng' : 'Phát bảng'}
-          </Text>
-        </TouchableOpacity>
-        {hasPlayed ? (
+        <View style={boardStyles.controlsRow}>
           <TouchableOpacity
-            accessibilityLabel="Đặt lại bảng phát"
             activeOpacity={0.8}
-            disabled={isLoading}
-            style={[boardStyles.iconButton, isLoading && { opacity: 0.5 }]}
-            onPress={() => {
-              if (!isLoading) {
-                morseAudio.stop();
-                setIsPlaying(false);
-                setHasPlayed(false);
-              }
-            }}
+            style={[boardStyles.playButton, isPlaying && {backgroundColor: '#538885'}]}
+            onPress={playBoard}
           >
-            <RotateCcw size={19} color="#132238" />
+            {isPlaying ? (
+              <Pause size={18} color="#F8FAFC" />
+            ) : (
+              <Play size={18} color="#F8FAFC" fill="#F8FAFC" />
+            )}
+            <Text style={boardStyles.playButtonText}>
+              {isPlaying ? 'Tạm dừng' : 'Phát bảng'}
+            </Text>
           </TouchableOpacity>
-        ) : null}
-      </View>
+          {hasPlayed ? (
+            <TouchableOpacity
+              accessibilityLabel="Đặt lại bảng phát"
+              activeOpacity={0.8}
+              disabled={isLoading}
+              style={[boardStyles.iconButton, isLoading && { opacity: 0.5 }]}
+              onPress={() => {
+                if (!isLoading) {
+                  morseAudio.stop();
+                  setIsPlaying(false);
+                  setHasPlayed(false);
+                }
+              }}
+            >
+              <RotateCcw size={19} color="#132238" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
         <View style={boardStyles.sectionRow}>
           <Text style={boardStyles.sectionTitle}>Tập thu báo</Text>
           <Text style={boardStyles.sectionHint}>ĐỐI CHIẾU SAU</Text>
         </View>
 
-      <View style={boardStyles.comparePanel}>
-        <Text style={boardStyles.compareHelp}>
-          Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
-        </Text>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={boardStyles.checkButton}
-          onPress={compareBoard}
-        >
-          {isComparing ? (
-            <ActivityIndicator size="small" color="#F8FAFC" />
-          ) : (
-            <Check size={18} color="#F8FAFC" />
-          )}
-          <Text style={boardStyles.checkButtonText}>
-            {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
+        <View style={boardStyles.comparePanel}>
+          <Text style={boardStyles.compareHelp}>
+            Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
           </Text>
-        </TouchableOpacity>
-        {hasCompared ? (
           <TouchableOpacity
-            accessibilityLabel="Đặt lại đối chiếu"
             activeOpacity={0.8}
-            disabled={isComparing}
-            style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
-            onPress={resetComparison}
+            style={boardStyles.checkButton}
+            onPress={compareBoard}
           >
-            <RotateCcw size={19} color="#132238" />
+            {isComparing ? (
+              <ActivityIndicator size="small" color="#F8FAFC" />
+            ) : (
+              <Check size={18} color="#F8FAFC" />
+            )}
+            <Text style={boardStyles.checkButtonText}>
+              {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
+            </Text>
           </TouchableOpacity>
-        ) : null}
-      </View>
-    </ScrollView>
+          {hasCompared ? (
+            <TouchableOpacity
+              accessibilityLabel="Đặt lại đối chiếu"
+              activeOpacity={0.8}
+              disabled={isComparing}
+              style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
+              onPress={resetComparison}
+            >
+              <RotateCcw size={19} color="#132238" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

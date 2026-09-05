@@ -86,7 +86,13 @@ android {
         versionName "1.0"
 
         ndk {
-            abiFilters 'x86_64'
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += file("../../node_modules/react-native-audio-api/android/build/generated/source/codegen/java")
         }
     }
 

@@ -69,6 +69,9 @@ export const boardStyles = StyleSheet.create({
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
   },
+  setupInputDisabled: {
+    opacity: 0.6,
+  },
   setupHelper: {
     marginTop: 8,
     color: '#64748B',
@@ -86,6 +89,9 @@ export const boardStyles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
   },
+  setupChoiceDisabled: {
+    opacity: 0.5,
+  },
   setupChoiceActive: {
     backgroundColor: '#0F172A',
   },
@@ -102,6 +108,14 @@ export const boardStyles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  setupGenerateButtonDisabled: {
+    opacity: 0.7,
+  },
+  setupGenerateButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   setupGenerateButtonText: {
     color: '#FFFFFF',
