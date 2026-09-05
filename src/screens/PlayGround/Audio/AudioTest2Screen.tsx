@@ -13,8 +13,8 @@ import type { PlaygroundStackParamList } from '../../../types/navigation';
 type Props = NativeStackScreenProps<PlaygroundStackParamList, 'AudioTest2Screen'>;
 
 const AudioTest2Screen = ({ route }: Props) => {
-  const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(20);
+  const [frequency, setFrequency] = useState(route.params.frequency);
+  const [cpm, setCpm] = useState(route.params.cpm);
   const [board, setBoard] = useState<{ groups: string[] }>({ groups: [] });
 
   const { groupCount, characterType } = route.params;
@@ -29,7 +29,7 @@ const AudioTest2Screen = ({ route }: Props) => {
 
   const handlePlay = async () => {
     morseAudio.setFrequency(Number(frequency));
-    morseAudio.setWpm(Number(wpm));
+    morseAudio.setCpm(Number(cpm));
     morseAudio.setVolume(0.5);
 
     await morseAudio.playText(board.groups.join(' '));
@@ -55,21 +55,21 @@ const AudioTest2Screen = ({ route }: Props) => {
         <Text>3000 Hz</Text>
       </View>
 
-      <Text style={styles.label}>WPM</Text>
+      <Text style={styles.label}>CPM</Text>
 
-      <Text style={styles.label}>Tốc độ: {wpm} WPM</Text>
+      <Text style={styles.label}>Tốc độ: {cpm} CPM</Text>
 
       <Slider
         minimumValue={5}
-        maximumValue={100}
+        maximumValue={500}
         step={5}
-        value={wpm}
-        onValueChange={setWpm}
+        value={cpm}
+        onValueChange={setCpm}
       />
 
       <View style={styles.sliderRange}>
-        <Text>5 WPM</Text>
-        <Text>100 WPM</Text>
+        <Text>5 CPM</Text>
+        <Text>500 CPM</Text>
       </View>
       <Button title="Phát" onPress={handlePlay} />
       <Button title="Tạm dừng" onPress={() => morseAudio.pause()} />

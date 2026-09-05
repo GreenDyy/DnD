@@ -5,8 +5,10 @@ export type IntentType =
   | 'ask_morse'
   | 'unknown';
 
-export type CharacterType = 'letter' | 'number' | 'mixed';
-export type NumberFormatType = 'short' | 'normal';
+import {
+  CHARACTER_OPTIONS,
+  type CharacterType,
+} from '../constants/characterTypes';
 
 export interface ParsedIntent {
   type: IntentType;
@@ -17,15 +19,15 @@ export interface ParsedIntent {
 }
 
 const REQUIRED_PARAMS: Record<IntentType, string[]> = {
-  practice_electro: ['groupCount', 'characterType', 'wpm'],
+  practice_electro: ['groupCount', 'characterType', 'cpm'],
   practice_listen: [],
   play_morse: ['character'],
   ask_morse: [],
   unknown: [],
 };
 
-const OPTIONAL_PARAMS: Record<IntentType, Record<string, any>> = {
-  practice_electro: { characterType: 'letter', wpm: 20 },
+const DEFAULT_PARAMS: Record<IntentType, Record<string, any>> = {
+  practice_electro: { characterType: 'letter', cpm: 75 },
   practice_listen: {},
   play_morse: {},
   ask_morse: {},
@@ -39,20 +41,16 @@ function generateFollowUpQuestion(intent: ParsedIntent): string {
   const p = intent.params;
 
   if (intent.type === 'practice_electro') {
-    const parts: string[] = [];
+    const parts: any = [];
     if (missing.includes('groupCount')) {
       parts.push('bao nhiêu nhóm');
     }
     if (missing.includes('characterType')) {
-      parts.push('chữ cái, chữ số hay hỗn hợp');
+      parts.push('chữ cái, số thường, số tắt hay hỗn hợp');
     }
-    if (missing.includes('wpm')) {
-      parts.push('tốc độ bao nhiêu ký tự / 1 phút');
+    if (missing.includes('cpm')) {
+      parts.push('tốc độ bao nhiêu chữ / phút');
     }
-    if (missing.includes('numberFormat')) {
-      parts.push('số tắt hay số thường');
-    }
-
     if (parts.length === 1) {
       return `Bạn muốn ${parts[0]}?`;
     }
@@ -72,7 +70,7 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
     patterns: [
       /(?:thu|luyện|truyền)\s+(?:bảng\s+)?(?:điện|điên|mã|chữ|số)/i,
       /(?:thu|luyện|truyền)\s+\d+\s*(?:nhóm|groups?)/i,
-      /(?:thu|luyện|truyền)\s+.*(?:nhóm|tốc\s+độ|wpm)/i,
+      /(?:thu|luyện|truyền)\s+.*(?:nhóm|tốc\s+độ|cpm)/i,
       /(?:bảng\s+điện|morse\s+table)/i,
       /(?:gõ|type|send)\s+(?:bảng|morse)/i,
       /(?:tôi\s+)?(?:muốn\s+)?thu(?:\s|$)/i,
@@ -93,25 +91,20 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
       }
 
       // Extract characterType
-      if (/(?:chữ\s*số|number|số)/i.test(text)) {
+      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
+        params.characterType = 'shortNumber' as CharacterType;
+      } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(text)) {
         params.characterType = 'number' as CharacterType;
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(text)) {
         params.characterType = 'mixed' as CharacterType;
       }
 
-      // Extract wpm
-      const wpmMatch = text.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
-        || text.match(/(\d+)\s*(?:wpm|chữ|từ|chars?)?\s*(?:\/?\s*phút|per\s*min)/i)
-        || text.match(/(\d+)\s*wpm/i);
-      if (wpmMatch) {
-        params.wpm = parseInt(wpmMatch[1], 10);
-      }
-
-      // Extract numberFormat (chữ số)
-      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
-        params.numberFormat = 'short';
-      } else if (/(?:số\s*thường|số\s*dài|normal)/i.test(text)) {
-        params.numberFormat = 'normal';
+      // Extract cpm
+      const cpmMatch = text.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
+        || text.match(/(\d+)\s*(?:cpm|ký\s*tự|chữ|từ|chars?)?\s*(?:\/?\s*phút|per\s*min)/i)
+        || text.match(/(\d+)\s*cpm/i);
+      if (cpmMatch) {
+        params.cpm = parseInt(cpmMatch[1], 10);
       }
 
       return params;
@@ -149,13 +142,6 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
 function checkComplete(type: IntentType, params: Record<string, any>): { isComplete: boolean; missingParams: string[] } {
   const required = [...(REQUIRED_PARAMS[type] || [])];
 
-  // Conditional required: numberFormat chỉ cần khi characterType === 'number'
-  if (type === 'practice_electro' && params.characterType === 'number') {
-    if (!required.includes('numberFormat')) {
-      required.push('numberFormat');
-    }
-  }
-
   const missing = required.filter(p => params[p] === undefined || params[p] === null || params[p] === '');
   return {
     isComplete: missing.length === 0,
@@ -164,28 +150,17 @@ function checkComplete(type: IntentType, params: Record<string, any>): { isCompl
 }
 
 function applyDefaults(type: IntentType, params: Record<string, any>): Record<string, any> {
-  const defaults = OPTIONAL_PARAMS[type] || {};
+  const defaults = DEFAULT_PARAMS[type] || {};
   return { ...defaults, ...params };
 }
 
 export function generateIntentResponse(type: IntentType, params: Record<string, any>): string {
-  const characterTypeLabel: Record<CharacterType, string> = {
-    letter: 'chữ cái',
-    number: 'chữ số',
-    mixed: 'hỗn hợp',
-  };
-  const numberFormatLabel: Record<string, string> = {
-    short: 'số tắt',
-    normal: 'số thường',
-  };
-
   switch (type) {
     case 'practice_electro': {
-      const charLabel = characterTypeLabel[params.characterType] || params.characterType;
-      const fmtLabel = params.characterType === 'number' && params.numberFormat
-        ? `, ${numberFormatLabel[params.numberFormat] || params.numberFormat}`
-        : '';
-      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}${fmtLabel}, tốc độ ${params.wpm} ký tự / 1 phút. Bắt đầu nhé!`;
+      const charLabel = CHARACTER_OPTIONS.find(
+        option => option.value === params.characterType,
+      )?.label || params.characterType;
+      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} ký tự / 1 phút. Bắt đầu nhé!`;
     }
     case 'practice_listen':
       return 'Sau đây chúng ta qua màn hình nghe tín hiệu nhé';
@@ -239,7 +214,7 @@ export function collectMissingParams(
 
   // Check for "mặc định" / "bỏ qua" — use defaults
   if (/(?:mặc\s*định|default|bỏ\s*qua|skip)/i.test(normalizedText)) {
-    const defaults = OPTIONAL_PARAMS[intent.type] || {};
+    const defaults = DEFAULT_PARAMS[intent.type] || {};
     for (const key of intent.missingParams) {
       if (updatedParams[key] === undefined && defaults[key] !== undefined) {
         updatedParams[key] = defaults[key];
@@ -248,7 +223,9 @@ export function collectMissingParams(
   } else {
     // Extract characterType
     if (intent.missingParams.includes('characterType')) {
-      if (/(?:chữ\s*số|number|số)/i.test(normalizedText)) {
+      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(normalizedText)) {
+        updatedParams.characterType = 'shortNumber' as CharacterType;
+      } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(normalizedText)) {
         updatedParams.characterType = 'number' as CharacterType;
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(normalizedText)) {
         updatedParams.characterType = 'mixed' as CharacterType;
@@ -257,22 +234,13 @@ export function collectMissingParams(
       }
     }
 
-    // Extract wpm
-    if (intent.missingParams.includes('wpm')) {
-      const wpmMatch = normalizedText.match(/(\d+)\s*(?:wpm|chữ|từ)/i)
+    // Extract cpm
+    if (intent.missingParams.includes('cpm')) {
+      const cpmMatch = normalizedText.match(/(\d+)\s*(?:cpm|ký\s*tự|chữ|từ)/i)
         || normalizedText.match(/(?:tốc\s+độ|speed)\s*(\d+)/i)
         || normalizedText.match(/^(\d+)$/);
-      if (wpmMatch) {
-        updatedParams.wpm = parseInt(wpmMatch[1], 10);
-      }
-    }
-
-    // Extract numberFormat
-    if (intent.missingParams.includes('numberFormat')) {
-      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(normalizedText)) {
-        updatedParams.numberFormat = 'short';
-      } else if (/(?:số\s*thường|số\s*dài|normal)/i.test(normalizedText)) {
-        updatedParams.numberFormat = 'normal';
+      if (cpmMatch) {
+        updatedParams.cpm = parseInt(cpmMatch[1], 10);
       }
     }
 
@@ -319,8 +287,7 @@ export function getIntentNavigation(type: IntentType, params: Record<string, any
         params: {
           groupCount: params.groupCount,
           characterType: params.characterType,
-          numberFormat: params.numberFormat,
-          wpm: params.wpm,
+          cpm: params.cpm,
         },
       };
     case 'practice_listen':

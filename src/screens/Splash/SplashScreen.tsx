@@ -15,7 +15,7 @@ import { useLocalAIStore } from '../../store';
 
 function SplashScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { isReady, isLoading, error, initialize } = useLocalAIStore();
+  const { isWarmedUp, isLoading, isReady, error, initialize } = useLocalAIStore();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,13 +46,22 @@ function SplashScreen() {
   }, [initialize]);
 
   useEffect(() => {
-    if (!isReady && !error) return;
+    if (!isWarmedUp && !error) return;
 
     navigation.reset({
       index: 0,
       routes: [{ name: 'HomeScreen' }],
     });
-  }, [isReady, error]);
+  }, [isWarmedUp, error, navigation]);
+
+  const getLoadingText = () => {
+    if (isWarmedUp) return 'Học nào!';
+    if (isLoading && !isReady) return 'Đang tải mô hình...';
+    if (isLoading) return 'Đang tạo cache...';
+    if (error) return 'Đang tải...';
+
+    return 'Đang khởi tạo...';
+  };
 
   return (
     <View style={styles.container}>
@@ -65,28 +74,22 @@ function SplashScreen() {
 
         <View style={styles.loadingWrap}>
           <Text style={styles.loadingText}>
-            {isLoading
-              ? 'Đang khởi tạo mô hình...'
-              : isReady
-                ? 'Sẵn sàng!'
-                : error
-                  ? 'Đang tải...'
-                  : 'Đang khởi tạo...'}
+            {getLoadingText()}
           </Text>
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressBar,
-                  {
-                    width: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['12%', '92%'],
-                    }),
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.loadingHint}>MORI AI / DND</Text>
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressBar,
+                {
+                  width: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['12%', '92%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.loadingHint}>MORI AI / DND</Text>
         </View>
       </View>
     </View>

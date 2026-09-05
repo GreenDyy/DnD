@@ -94,7 +94,7 @@ function ChatScreen() {
         if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
           await morseAudio.start();
           morseAudio.setFrequency(600);
-          morseAudio.setWpm(8);
+          morseAudio.setCpm(40);
           morseAudio.setVolume(1);
           await morseAudio.playText(pendingPlayChar);
           reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
@@ -121,14 +121,6 @@ function ChatScreen() {
         };
 
         if (result.isComplete) {
-          // Đủ params → finalize
-          const finalIntent: ParsedIntent = {
-            ...updatedIntent,
-            response: (() => {
-              const { getIntentNavigation: _, ...rest } = updatedIntent;
-              return '';
-            })(),
-          };
           reply = generateIntentResponse(updatedIntent.type, result.params);
 
           const navTarget = getIntentNavigation(updatedIntent.type, result.params);

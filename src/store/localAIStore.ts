@@ -9,6 +9,7 @@ interface LocalAIState {
   modelPath: string | null;
   progress: number;
   isReady: boolean;
+  isWarmedUp: boolean;
   isLoading: boolean;
   error: string | null;
   isCancelled: boolean;
@@ -27,6 +28,7 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
   modelPath: null,
   progress: 0,
   isReady: false,
+  isWarmedUp: false,
   isLoading: false,
   error: LocalAI ? null : 'LocalAI native module is not available. Rebuild the app and restart it.',
   isCancelled: false,
@@ -39,15 +41,13 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
     }
 
     try {
-      set({ isLoading: true, error: null, progress: 0 });
+      set({ error: null, progress: 0 });
       const path = await LocalAI.prepareModel();
       set({ modelPath: path });
       return path;
     } catch (error: any) {
       set({ error: error?.message || 'Failed to prepare model' });
       throw error;
-    } finally {
-      set({ isLoading: false });
     }
   },
 
@@ -61,10 +61,10 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
     try {
       set({ error: null });
       const loaded = await LocalAI.loadModel(path);
-      set({ isReady: loaded });
+      set({ isReady: loaded, isWarmedUp: false });
       return loaded;
     } catch (error: any) {
-      set({ isReady: false, error: error?.message || 'Failed to load model' });
+      set({ isReady: false, isWarmedUp: false, error: error?.message || 'Failed to load model' });
       throw error;
     }
   },
@@ -80,7 +80,11 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
 
     const request = LocalAI.warmup(systemPrompt).then((warmedUp: boolean) => {
       if (!warmedUp) throw new Error('Cannot cache system prompt.');
+      set({ isWarmedUp: true, error: null });
       return true;
+    }).catch((error: any) => {
+      set({ isWarmedUp: false, error: error?.message || 'Cannot cache system prompt.' });
+      throw error;
     }).finally(() => {
       warmupPromise = null;
     });
@@ -90,16 +94,18 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
   },
 
   initialize: async () => {
-    if (get().isReady || initializationPromise) {
+    if (get().isWarmedUp || initializationPromise) {
       return initializationPromise || Promise.resolve();
     }
 
     initializationPromise = (async () => {
+      set({ isLoading: true, error: null });
       try {
         const path = await get().prepare();
         await get().loadModel(path);
         await get().warmup(LOCAL_AI_SYSTEM_PROMPT);
       } finally {
+        set({ isLoading: false });
         initializationPromise = null;
       }
     })();

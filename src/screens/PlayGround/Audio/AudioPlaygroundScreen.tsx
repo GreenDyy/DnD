@@ -16,20 +16,20 @@ export default function AudioPlaygroundScreen() {
 
   const [text, setText] = useState('SOS');
   const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(20);
+  const [cpm, setCpm] = useState(100);
   const [groupCount, setGroupCount] = useState(10);
   const [characterType, setCharacterType] = useState<CharacterType>('letter');
 
   const handlePlay = async () => {
     const frequencyValue = Number(frequency);
-    const wpmValue = Number(wpm);
+    const cpmValue = Number(cpm);
 
     if (!Number.isFinite(frequencyValue)) {
       return;
     }
 
     morseAudio.setFrequency(frequencyValue);
-    morseAudio.setWpm(wpmValue);
+    morseAudio.setCpm(cpmValue);
     morseAudio.setVolume(0.5);
 
     await morseAudio.playText(text);
@@ -38,7 +38,7 @@ export default function AudioPlaygroundScreen() {
   const handlerMorseBoardGenerate = () => {
     navigation.navigate('AudioTest2Screen', {
       frequency: frequency,
-      wpm: wpm,
+      cpm: cpm,
       groupCount: groupCount,
       characterType: characterType,
     });
@@ -74,21 +74,21 @@ export default function AudioPlaygroundScreen() {
         <Text>3000 Hz</Text>
       </View>
 
-      <Text style={styles.label}>WPM</Text>
+      <Text style={styles.label}>CPM</Text>
 
-      <Text style={styles.label}>Tốc độ: {wpm} WPM</Text>
+      <Text style={styles.label}>Tốc độ: {cpm} CPM</Text>
 
       <Slider
         minimumValue={5}
-        maximumValue={100}
+        maximumValue={500}
         step={5}
-        value={wpm}
-        onValueChange={setWpm}
+        value={cpm}
+        onValueChange={setCpm}
       />
 
       <View style={styles.sliderRange}>
-        <Text>5 WPM</Text>
-        <Text>100 WPM</Text>
+        <Text>5 CPM</Text>
+        <Text>500 CPM</Text>
       </View>
 
       <Text style={styles.label}>Chọn loại ký tự</Text>

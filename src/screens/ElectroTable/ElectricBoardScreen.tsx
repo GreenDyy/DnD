@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 const defaultBoardParams = {
   groupCount: 10,
   characterType: 'letter' as const,
-  wpm: 20,
+  cpm: 100,
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
@@ -46,8 +46,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
   const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
-  const cpm = wpm * 5;
+  const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
     [groupCount, characterType],
@@ -62,7 +61,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     }
 
     morseAudio.setFrequency(frequency);
-    morseAudio.setWpm(wpm);
+    morseAudio.setCpm(cpm);
     morseAudio.setVolume(0.5);
     setIsPlaying(true);
     setHasPlayed(true);
@@ -162,7 +161,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           <View style={boardStyles.metaRow}>
             <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
             <Text style={boardStyles.meta}>{frequency} HZ</Text>
-            <Text style={boardStyles.meta}>{cpm} chữ / phút</Text>
+            <Text style={boardStyles.meta}>{cpm} CPM</Text>
           </View>
         </View>
 
@@ -187,18 +186,18 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={boardStyles.settingsPanel}>
           <View style={boardStyles.settingRow}>
             <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
-            <Text style={boardStyles.settingValue}>{cpm} chữ / phút</Text>
+            <Text style={boardStyles.settingValue}>{cpm} CPM</Text>
           </View>
           <Slider
-            minimumValue={1}
-            maximumValue={100}
-            step={1}
-            value={wpm}
-            onValueChange={setWpm}
+            minimumValue={5}
+            maximumValue={500}
+            step={5}
+            value={cpm}
+            onValueChange={setCpm}
           />
           <View style={boardStyles.rangeRow}>
-            <Text style={boardStyles.rangeText}>5 chữ / phút</Text>
-            <Text style={boardStyles.rangeText}>500 chữ / phút</Text>
+            <Text style={boardStyles.rangeText}>5 CPM</Text>
+            <Text style={boardStyles.rangeText}>500 CPM</Text>
           </View>
         </View>
 

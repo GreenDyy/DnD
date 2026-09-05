@@ -13,19 +13,14 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { type RootStackParamList } from '../../types/navigation';
 import {
+  CHARACTER_OPTIONS,
+  type CharacterType,
+} from '../../constants/characterTypes';
+import {
   MAX_GROUP_COUNT,
   MIN_GROUP_COUNT,
-  type CharacterType,
 } from '../../utils/morseGenerator';
 import { boardStyles } from './boardStyles';
-
-const characterOptions: ReadonlyArray<{ value: CharacterType; label: string }> =
-  [
-    { value: 'letter', label: 'Chữ' },
-    { value: 'number', label: 'Số' },
-    { value: 'shortNumber', label: 'Số tắt' },
-    { value: 'mixed', label: 'Hỗn hợp' },
-  ];
 
 function ElectroTableScreen() {
   const navigation =
@@ -110,7 +105,7 @@ function ElectroTableScreen() {
           LOẠI KÝ TỰ
         </Text>
         <View style={boardStyles.setupChoiceRow}>
-          {characterOptions.map(option => (
+          {CHARACTER_OPTIONS.map(option => (
             <TouchableOpacity
               key={option.value}
               activeOpacity={0.8}

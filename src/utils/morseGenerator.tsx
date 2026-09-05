@@ -1,4 +1,6 @@
-export type CharacterType = 'letter' | 'number' | 'shortNumber' | 'mixed';
+import type { CharacterType } from '../constants/characterTypes';
+
+export type { CharacterType } from '../constants/characterTypes';
 
 // dữ liệu cần thiết lập cho một bảng điện
 export interface MorseBoardConfig {
