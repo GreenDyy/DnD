@@ -54,6 +54,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const groups = board.groups.slice(1, -1);
 
   const playBoard = async () => {
+    if (isComparing) {
+      return;
+    }
+
     if (isPlaying) {
       morseAudio.pause();
       setIsPlaying(false);
@@ -74,6 +78,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   };
 
   const compareBoard = async () => {
+    if (isPlaying) {
+      return;
+    }
+
     if (isLoading) {
       compareSessionRef.current += 1;
       stopCharacterAudio();
@@ -161,7 +169,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           <View style={boardStyles.metaRow}>
             <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
             <Text style={boardStyles.meta}>{frequency} HZ</Text>
-            <Text style={boardStyles.meta}>{cpm} CPM</Text>
+            <Text style={boardStyles.meta}>{cpm} CHỮ / PHÚT</Text>
           </View>
         </View>
 
@@ -186,18 +194,18 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={boardStyles.settingsPanel}>
           <View style={boardStyles.settingRow}>
             <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
-            <Text style={boardStyles.settingValue}>{cpm} CPM</Text>
+            <Text style={boardStyles.settingValue}>{cpm} CHỮ / PHÚT</Text>
           </View>
           <Slider
             minimumValue={5}
-            maximumValue={500}
+            maximumValue={300}
             step={5}
             value={cpm}
             onValueChange={setCpm}
           />
           <View style={boardStyles.rangeRow}>
-            <Text style={boardStyles.rangeText}>5 CPM</Text>
-            <Text style={boardStyles.rangeText}>500 CPM</Text>
+            <Text style={boardStyles.rangeText}>5 Chữ / phút</Text>
+            <Text style={boardStyles.rangeText}>300 Chữ / phút</Text>
           </View>
         </View>
 
@@ -259,7 +267,12 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={boardStyles.controlsRow}>
           <TouchableOpacity
             activeOpacity={0.8}
-            style={[boardStyles.playButton, isPlaying && {backgroundColor: '#538885'}]}
+            disabled={isComparing}
+            style={[
+              boardStyles.playButton,
+              isPlaying && { backgroundColor: '#538885' },
+              isComparing && { opacity: 0.5 },
+            ]}
             onPress={playBoard}
           >
             {isPlaying ? (
@@ -299,31 +312,34 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           <Text style={boardStyles.compareHelp}>
             Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
           </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={boardStyles.checkButton}
-            onPress={compareBoard}
-          >
-            {isComparing ? (
-              <ActivityIndicator size="small" color="#F8FAFC" />
-            ) : (
-              <Check size={18} color="#F8FAFC" />
-            )}
-            <Text style={boardStyles.checkButtonText}>
-              {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
-            </Text>
-          </TouchableOpacity>
-          {hasCompared ? (
+          <View style={boardStyles.compareActions}>
             <TouchableOpacity
-              accessibilityLabel="Đặt lại đối chiếu"
               activeOpacity={0.8}
-              disabled={isComparing}
-              style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
-              onPress={resetComparison}
+              disabled={isPlaying}
+              style={[boardStyles.checkButton, isPlaying && { opacity: 0.5 }]}
+              onPress={compareBoard}
             >
-              <RotateCcw size={19} color="#132238" />
+              {isComparing ? (
+                <ActivityIndicator size="small" color="#F8FAFC" />
+              ) : (
+                <Check size={18} color="#F8FAFC" />
+              )}
+              <Text style={boardStyles.checkButtonText} numberOfLines={1}>
+                {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
+              </Text>
             </TouchableOpacity>
-          ) : null}
+            {hasCompared ? (
+              <TouchableOpacity
+                accessibilityLabel="Đặt lại đối chiếu"
+                activeOpacity={0.8}
+                disabled={isComparing}
+                style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
+                onPress={resetComparison}
+              >
+                <RotateCcw size={19} color="#132238" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

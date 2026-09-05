@@ -39,6 +39,7 @@ class MorseAudioEngine {
   private currentIndex = 0;
   private resumeResolver: (() => void) | null = null;
   private playbackToken = 0;
+  private playbackPromise: Promise<void> | null = null;
 
   // Khởi tạo audio engine nếu chưa khởi tạo
   private ensureInitialized() {
@@ -169,6 +170,13 @@ class MorseAudioEngine {
     this.resumeResolver = null;
   }
 
+  private releasePause() {
+    if (this.resumeResolver) {
+      this.resumeResolver();
+      this.resumeResolver = null;
+    }
+  }
+
   // Phát một chuỗi Morse từ vị trí bắt đầu.
   // Ví dụ: "... --- ..." hoặc ".- / -..."
   private async playMorseFromIndex(morse: string, startIndex: number) {
@@ -237,9 +245,28 @@ class MorseAudioEngine {
 
   // Chuyển text sang Morse rồi phát
   async playText(text: string) {
+    if (this.currentText === text && this.isPaused) {
+      this.resume();
+      if (this.playbackPromise) {
+        await this.playbackPromise;
+      }
+      return;
+    }
+
     this.currentText = text;
+    this.isPaused = false;
+    this.stopRequested = false;
     const morse = textToMorse(text);
-    await this.playMorseFromIndex(morse, 0);
+    const request = this.playMorseFromIndex(morse, 0);
+    this.playbackPromise = request;
+
+    try {
+      await request;
+    } finally {
+      if (this.playbackPromise === request) {
+        this.playbackPromise = null;
+      }
+    }
   }
 
   pause() {
@@ -258,10 +285,7 @@ class MorseAudioEngine {
     }
 
     this.isPaused = false;
-
-    if (this.resumeResolver) {
-      this.resumeResolver();
-    }
+    this.releasePause();
   }
 
   restart() {
@@ -269,6 +293,7 @@ class MorseAudioEngine {
     this.isPaused = false;
     this.currentIndex = 0;
     this.playbackToken += 1;
+    this.releasePause();
 
     if (this.currentText) {
       this.playText(this.currentText);
@@ -277,7 +302,16 @@ class MorseAudioEngine {
 
   // Dừng tiếng beep hiện tại
   stop() {
-    this.pause();
+    this.stopRequested = true;
+    this.isPaused = false;
+    this.playbackToken += 1;
+    this.releasePause();
+    this.playing = false;
+    this.currentIndex = 0;
+
+    if (this.gain) {
+      this.gain.gain.value = 0;
+    }
   }
 
   // Giải phóng audio resources khi không còn dùng engine
