@@ -34,7 +34,7 @@ function ChatScreen() {
     {
       id: '1',
       role: 'bot',
-      text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!',
+      text: 'Xin chào! Mình là Mori, trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!',
     },
   ]);
   const [input, setInput] = useState('');

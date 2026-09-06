@@ -93,12 +93,6 @@ android {
         }
     }
 
-    sourceSets {
-        main {
-            java.srcDirs += file("../../node_modules/react-native-audio-api/android/build/generated/source/codegen/java")
-        }
-    }
-
     externalNativeBuild {
         cmake {
             path file("src/main/jni/CMakeLists.txt")
