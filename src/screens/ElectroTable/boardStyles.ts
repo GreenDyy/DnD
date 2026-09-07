@@ -1,377 +1,391 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
-export const boardStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  setupContainer: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  setupContent: {
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 40,
-  },
-  setupEyebrow: {
-    color: '#2B8A78',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-  },
-  setupTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 8,
-  },
-  setupSubtitle: {
-    color: '#475569',
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  setupPanel: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  setupLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    letterSpacing: 0.6,
-  },
-  setupSectionGap: {
-    marginTop: 18,
-  },
-  setupInput: {
-    marginTop: 10,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
-  },
-  setupInputDisabled: {
-    opacity: 0.6,
-  },
-  setupHelper: {
-    marginTop: 8,
-    color: '#64748B',
-    fontSize: 12,
-  },
-  setupChoiceRow: {
-    flexDirection: 'row',
-    marginTop: 12,
-    gap: 10,
-  },
-  setupChoice: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  setupChoiceDisabled: {
-    opacity: 0.5,
-  },
-  setupChoiceActive: {
-    backgroundColor: '#0F172A',
-  },
-  setupChoiceText: {
-    color: '#0F172A',
-    fontWeight: '600',
-  },
-  setupChoiceTextActive: {
-    color: '#FFFFFF',
-  },
-  setupGenerateButton: {
-    marginTop: 8,
-    backgroundColor: '#22C55E',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  setupGenerateButtonDisabled: {
-    opacity: 0.7,
-  },
-  setupGenerateButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  setupGenerateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerLabel: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: 1,
-  },
-  headerSpacer: {
-    width: 40,
-    height: 40,
-  },
-  hero: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  eyebrow: {
-    color: '#2B8A78',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-  },
-  title: {
-    marginTop: 12,
-    fontSize: 27,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  titleSmall: {
-    fontSize: 24,
-  },
-  subtitle: {
-    marginTop: 8,
-    color: '#475569',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  metaRow: {
-    marginTop: 18,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  meta: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    color: '#0F172A',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  settingsPanel: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  settingLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    letterSpacing: 0.6,
-  },
-  settingValue: {
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-  rangeRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  rangeText: {
-    color: '#64748B',
-    fontSize: 12,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  sectionHint: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '700',
-  },
-  boardPanel: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  marker: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  endMarker: {
-    backgroundColor: '#DCFCE7',
-  },
-  markerText: {
-    color: '#0F172A',
-    fontWeight: '800',
-    fontSize: 18,
-  },
-  boardGrid: {
-    flex: 1,
-    gap: 10,
-  },
-  boardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  groupsInRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 8,
-    flex: 1,
-  },
-  groupCell: {
-    flex: 1,
-    minWidth: 36,
-    height: 38,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-  },
-  groupText: {
-    color: '#0F172A',
-    fontWeight: '700',
-    fontSize: 10,
-    lineHeight: 14,
-    textAlign: 'center',
-  },
-  rowNumber: {
-    width: 28,
-    textAlign: 'right',
-    fontWeight: '700',
-    color: '#334155',
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 18,
-  },
-  playButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: '#22C55E',
-  },
-  playButtonText: {
-    color: '#F8FAFC',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  comparePanel: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  compareHelp: {
-    color: '#475569',
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 14,
-  },
-  checkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#0F172A',
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  checkButtonText: {
-    color: '#F8FAFC',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-});
+export const createElectricBoardStyles = (
+  screenWidth: number,
+  screenHeight: number,
+  groupsPerRow: number,
+) => {
+  const isSmallDevice = screenWidth < 375;
+  const paddingH = isSmallDevice ? 14 : 18;
+  const cardPadding = 14;
+  const counterColWidth = 36;
+  const cellGap = 8;
+
+  // Tính chính xác bề rộng mỗi ô nhóm ký tự:
+  const innerGridWidth =
+    screenWidth - paddingH * 2 - cardPadding * 2 - counterColWidth - 10;
+  const cellWidth = Math.floor(
+    (innerGridWidth - (groupsPerRow - 1) * cellGap) / groupsPerRow,
+  );
+
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#F8FAFC',
+    },
+    scrollContent: {
+      paddingHorizontal: paddingH,
+      paddingBottom: 40,
+    },
+
+    /* Navigation Bar */
+    navBar: {
+      height: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: paddingH,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+      backgroundColor: '#F8FAFC',
+    },
+    backButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+        },
+        android: {
+          elevation: 1,
+        },
+      }),
+    },
+    navTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#0F172A',
+      letterSpacing: 0.4,
+    },
+    navSpacer: {
+      width: 38,
+    },
+
+    /* Hero Banner */
+    heroCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 16,
+      marginTop: 14,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    heroHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    heroBadge: {
+      backgroundColor: '#EEF2FF',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    heroBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: '#4F46E5',
+    },
+    statsPill: {
+      backgroundColor: '#F1F5F9',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    statsPillText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#475569',
+    },
+    heroTitle: {
+      fontSize: isSmallDevice ? 20 : 22,
+      fontWeight: '800',
+      color: '#0F172A',
+    },
+    heroSubtitle: {
+      fontSize: 13,
+      color: '#64748B',
+      marginTop: 4,
+      lineHeight: 18,
+    },
+    quickSpecs: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 12,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: '#F1F5F9',
+    },
+    specItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    specLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#334155',
+    },
+    specDivider: {
+      width: 1,
+      height: 12,
+      backgroundColor: '#CBD5E1',
+      marginHorizontal: 12,
+    },
+
+    /* BẢNG ĐIỆN TÍN (MAIN TELEGRAPH SHEET) */
+    boardCard: {
+      marginTop: 16,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: '#CBD5E1',
+      padding: cardPadding,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    sheetTopBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    sheetTopDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: '#94A3B8',
+    },
+    sheetTopTitle: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#64748B',
+      letterSpacing: 1,
+    },
+    // Ký tự đang phát tiếng beep
+    charHighlighted: {
+      color: '#FFFFFF',
+      backgroundColor: '#4F46E5', // Nền tím đậm nổi bật
+      borderRadius: 4,
+      fontWeight: '900',
+      overflow: 'hidden',
+    },
+
+    // Highlight khi phát dấu '=' hoặc '+'
+    markerBadgeActive: {
+      backgroundColor: '#4F46E5',
+      borderColor: '#4338CA',
+    },
+    markerTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '900',
+    },
+    markerBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 4,
+      marginBottom: 10,
+      borderWidth: 0.5,
+      borderColor: '#FDE68A',
+    },
+    markerBadgeEnd: {
+      marginTop: 10,
+      marginBottom: 0,
+      backgroundColor: '#E0F2FE',
+      borderColor: '#BAE6FD',
+    },
+    markerText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#92400E',
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    gridContainer: {
+      gap: 8,
+    },
+    boardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cellsRow: {
+      flexDirection: 'row',
+      gap: cellGap,
+    },
+    groupCell: {
+      width: cellWidth,
+      height: 38,
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    groupText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#0F172A',
+      letterSpacing: 1.5,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    rowCounter: {
+      width: counterColWidth,
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    rowCounterText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#94A3B8',
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+
+    /* Controls: Audio Play */
+    audioActionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 16,
+    },
+    playBtn: {
+      flex: 1,
+      height: 50,
+      borderRadius: 12,
+      backgroundColor: '#4F46E5',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    playBtnActive: {
+      backgroundColor: '#059669',
+    },
+    playBtnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    iconButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 12,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    /* Sections */
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 24,
+      marginBottom: 10,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#1E293B',
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+
+    /* Đối chiếu */
+    compareCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    compareDesc: {
+      fontSize: 13,
+      color: '#64748B',
+      lineHeight: 18,
+      marginBottom: 12,
+    },
+    compareBtnRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    compareBtn: {
+      flex: 1,
+      height: 46,
+      borderRadius: 10,
+      backgroundColor: '#0F172A',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    compareBtnActive: {
+      backgroundColor: '#D97706',
+    },
+    compareBtnText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    /* Sliders */
+    sliderCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    sliderHead: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    sliderLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#334155',
+    },
+    sliderValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#4F46E5',
+    },
+    rangeLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 4,
+    },
+    rangeSub: {
+      fontSize: 11,
+      color: '#94A3B8',
+    },
+  });
+};
