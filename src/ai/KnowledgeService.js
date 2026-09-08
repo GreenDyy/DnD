@@ -11,6 +11,36 @@ class KnowledgeService {
     );
   }
 
+  _buildCharacterResponse(character, codeOverride) {
+    const result = this.findCharacter(character);
+    if (!result) return null;
+
+    const descClean = result.description
+      .replace(/^[A-Z0-9]\s*gồm\s*/, 'gồm ')
+      .replace(/\s*-\s*/g, '-')
+      .replace(/tà/g, 'ta')
+      .replace(/\.\s*$/, '');
+
+    const pronunciation = result.pronunciation ? `, có phiên âm là ${result.pronunciation}` : '';
+    const message = codeOverride
+      ? `Tín hiệu số ${result.character} tắt là ${codeOverride}`
+      : `Tín hiệu ${result.character} là ${result.code} ${descClean}${pronunciation}`;
+
+    return {
+      type: 'character',
+      answer: result.character,
+      code: codeOverride || result.code,
+      pronunciation: result.pronunciation || '',
+      message,
+    };
+  }
+
+  getNumberResponse(number, variant) {
+    const result = this.findCharacter(number);
+    const code = variant === 'short' ? result?.shortCode : undefined;
+    return this._buildCharacterResponse(number, code);
+  }
+
   /**
    * Giải mã Morse.
    */
@@ -147,7 +177,28 @@ class KnowledgeService {
       };
     }
 
-    // 2. Hỏi về ký tự
+    // 2. Nhập một chữ cái hoặc số trực tiếp
+    const standaloneCharacterMatch = text.match(/^[a-z]$/i);
+    const numberMatch = text.match(/^(?:số|chữ)\s*([0-9])$/i) || text.match(/^([0-9])$/);
+
+    if (numberMatch) {
+      const number = numberMatch[1];
+      const numberEntry = this.findCharacter(number);
+      if (numberEntry?.shortCode) {
+        return {
+          type: 'ambiguous_number',
+          answer: number,
+          message: `Bạn muốn hỏi số ${number} thường hay số ${number} tắt?`,
+        };
+      }
+      return this._buildCharacterResponse(number);
+    }
+
+    if (standaloneCharacterMatch) {
+      return this._buildCharacterResponse(standaloneCharacterMatch[0]);
+    }
+
+    // 3. Hỏi về ký tự
     const characterMatch = text.match(/(?:chữ|ký tự|mã|morse|tín hiệu|hiệu)\s*([a-z0-9])/i);
 
     if (
@@ -155,25 +206,10 @@ class KnowledgeService {
       (text.includes('morse') || text.includes('chữ') || text.includes('ký tự') || text.includes('tín hiệu') || text.includes('hiệu'))
     ) {
       const character = characterMatch[1].toUpperCase();
-      const result = this.findCharacter(character);
+      const result = this._buildCharacterResponse(character);
 
       if (result) {
-        // Chuyển description: "D gồm tà - tích - tích." → "gồm ta-tích-tích"
-        const descClean = result.description
-          .replace(/^[A-Z0-9]\s*gồm\s*/, 'gồm ')
-          .replace(/\s*-\s*/g, '-')
-          .replace(/tà/g, 'ta')
-          .replace(/\.\s*$/, '');
-
-        const pronunciation = result.pronunciation ? `, có phiên âm là ${result.pronunciation}` : '';
-        return {
-          type: 'character',
-          answer: result.character,
-          code: result.code,
-          pronunciation: result.pronunciation || '',
-          message:
-            `Tín hiệu ${result.character} là ${result.code} ${descClean}${pronunciation}`
-        };
+        return result;
       }
     }
 

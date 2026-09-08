@@ -25,6 +25,11 @@ import { morseAudio } from '../../audio/MorseAudioEngine';
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
 
+type PendingPlayback = {
+  character: string;
+  code?: string;
+};
+
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { progress, isReady, isLoading, error, warmup, generate, cancelGenerate } =
@@ -40,7 +45,8 @@ function ChatScreen() {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
-  const [pendingPlayChar, setPendingPlayChar] = useState<string | null>(null);
+  const [pendingPlayChar, setPendingPlayChar] = useState<PendingPlayback | null>(null);
+  const [pendingNumber, setPendingNumber] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -96,8 +102,12 @@ function ChatScreen() {
           morseAudio.setFrequency(600);
           morseAudio.setCpm(40);
           morseAudio.setVolume(1);
-          await morseAudio.playText(pendingPlayChar);
-          reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
+          if (pendingPlayChar.code) {
+            await morseAudio.playMorse(pendingPlayChar.code);
+          } else {
+            await morseAudio.playText(pendingPlayChar.character);
+          }
+          reply = `Đã phát tín hiệu ${pendingPlayChar.character}.`;
           setPendingPlayChar(null);
 
           const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
@@ -150,7 +160,40 @@ function ChatScreen() {
         return;
       }
 
-      // === CASE 2: Parse intent mới ===
+      // === CASE 2: Chờ chọn số thường hay số tắt ===
+      if (pendingNumber) {
+        const variant = /(?:số\s*)?(?:tắt|short)/i.test(text)
+          ? 'short'
+          : /(?:số\s*)?(?:thường|normal)/i.test(text)
+            ? 'normal'
+            : null;
+
+        if (!variant) {
+          reply = `Bạn muốn hỏi số ${pendingNumber} thường hay số ${pendingNumber} tắt?`;
+          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          return;
+        }
+
+        const numberResult = knowledgeService.getNumberResponse(pendingNumber, variant);
+        setPendingNumber(null);
+
+        if (numberResult?.type === 'character') {
+          reply = `${numberResult.message}\n\nBạn có muốn tôi phát tín hiệu ${numberResult.answer} không?`;
+          setPendingPlayChar({
+            character: numberResult.answer,
+            code: numberResult.code,
+          });
+        } else {
+          reply = REPLIES.GENERATE_ERROR;
+        }
+
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        return;
+      }
+
+      // === CASE 3: Parse intent mới ===
       const intent = parseIntent(text);
       console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
 
@@ -193,15 +236,23 @@ function ChatScreen() {
         return;
       }
 
-      // === CASE 3: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
+      // === CASE 4: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
       const askResult = knowledgeService.ask(text);
+
+      if (askResult.type === 'ambiguous_number') {
+        setPendingNumber(askResult.answer);
+        reply = askResult.message;
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        return;
+      }
 
       if (askResult.type === 'character') {
         // Hỏi về ký tự → trả lời trực tiếp + hỏi phát âm
         const char = askResult.answer;
         reply = askResult.message;
         reply += `\n\nBạn có muốn tôi phát tín hiệu ${char} không?`;
-        setPendingPlayChar(char);
+        setPendingPlayChar({ character: char });
 
         const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
         setTimeout(() => {
@@ -254,7 +305,7 @@ function ChatScreen() {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, pendingIntent, generate, scrollToBottom, navigation]);
+  }, [input, isGenerating, isReady, pendingIntent, pendingNumber, pendingPlayChar, generate, scrollToBottom]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`

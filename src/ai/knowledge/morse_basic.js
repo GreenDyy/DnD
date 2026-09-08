@@ -29,15 +29,15 @@ export default {
     { "character": "Y", "code": "-.--", "description": "Y gồm ta - tích - ta - ta.", "pronunciation": "Yên Bái" },
     { "character": "Z", "code": "--..", "description": "Z gồm ta - ta - tích - tích.", "pronunciation": "Zíc Zắc" },
 
-    { "character": "0", "code": "-----", "description": "Số 0 gồm năm ta.", "pronunciation": "Không" },
-    { "character": "1", "code": ".----", "description": "Số 1 gồm một tích và bốn ta.", "pronunciation": "Một" },
-    { "character": "2", "code": "..---", "description": "Số 2 gồm hai tích và ba ta.", "pronunciation": "Hai" },
+    { "character": "0", "code": "-----", "shortCode": "-", "description": "Số 0 gồm năm ta.", "pronunciation": "Không" },
+    { "character": "1", "code": ".----", "shortCode": ".-", "description": "Số 1 gồm một tích và bốn ta.", "pronunciation": "Một" },
+    { "character": "2", "code": "..---", "shortCode": "..-", "description": "Số 2 gồm hai tích và ba ta.", "pronunciation": "Hai" },
     { "character": "3", "code": "...--", "description": "Số 3 gồm ba tích và hai ta.", "pronunciation": "Ba" },
     { "character": "4", "code": "....-", "description": "Số 4 gồm bốn tích và một ta.", "pronunciation": "Bốn" },
     { "character": "5", "code": ".....", "description": "Số 5 gồm năm tích.", "pronunciation": "Năm" },
     { "character": "6", "code": "-....", "description": "Số 6 gồm một ta và bốn tích.", "pronunciation": "Sáu" },
     { "character": "7", "code": "--...", "description": "Số 7 gồm hai ta và ba tích.", "pronunciation": "Bảy" },
-    { "character": "8", "code": "---..", "description": "Số 8 gồm ba ta và hai tích.", "pronunciation": "Tám" },
-    { "character": "9", "code": "----.", "description": "Số 9 gồm bốn ta và một tích.", "pronunciation": "Chín" }
+    { "character": "8", "code": "---..", "shortCode": "-..", "description": "Số 8 gồm ba ta và hai tích.", "pronunciation": "Tám" },
+    { "character": "9", "code": "----.", "shortCode": "-.", "description": "Số 9 gồm bốn ta và một tích.", "pronunciation": "Chín" }
   ]
 };
