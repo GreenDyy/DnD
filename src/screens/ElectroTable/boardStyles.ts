@@ -352,6 +352,44 @@ export const createElectricBoardStyles = (
       fontSize: 14,
       fontWeight: '700',
     },
+    speedSelectorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F1F5F9',
+    },
+    speedLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#475569',
+    },
+    speedButtonGroup: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    speedChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: '#F1F5F9',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+    },
+    speedChipActive: {
+      backgroundColor: '#EEF2FF',
+      borderColor: '#818CF8',
+    },
+    speedChipText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#64748B',
+    },
+    speedChipTextActive: {
+      color: '#4F46E5',
+    },
 
     /* Sliders */
     sliderCard: {

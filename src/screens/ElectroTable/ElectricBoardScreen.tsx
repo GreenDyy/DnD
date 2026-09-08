@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StatusBar,
   Switch,
@@ -48,14 +47,25 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     groupsPerRow,
   );
 
+  // Chỉ số ký tự khi phát tín hiệu Morse (= 12345 ABCDE +)
+  const [activeMorseIndex, setActiveMorseIndex] = useState<number>(-1);
+
+  // Chỉ số ký tự khi đọc đối chiếu (chỉ tính các ký tự trong các nhóm từ 0 -> n)
+  const [activeCompareIndex, setActiveCompareIndex] = useState<number>(-1);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+  // Quản lý trạng thái đối chiếu
   const [isComparing, setIsComparing] = useState(false);
+  const [isComparePaused, setIsComparePaused] = useState(false);
   const [hasCompared, setHasCompared] = useState(false);
   const [useShortNumbers, setUseShortNumbers] = useState(false);
   const compareSessionRef = useRef(0);
+  const currentCharIndexRef = useRef(0);
+  const compareResumeResolverRef = useRef<(() => void) | null>(null);
+  const isComparePausedRef = useRef(false);
 
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
@@ -63,8 +73,12 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
   const cpm = wpm * 5;
 
-  // State lưu index ký tự đang được phát (-1: không phát)
-  const [activeCharIndex, setActiveCharIndex] = useState<number>(-1);
+  // Các mốc tốc độ đối chiếu
+  const COMPARE_SPEEDS = [1, 1.25, 1.5, 2] as const;
+  type CompareSpeed = (typeof COMPARE_SPEEDS)[number];
+
+  // Tốc độ phát âm thanh đối chiếu (1x, 1.25x, 1.5x, 2x)
+  const [compareSpeed, setCompareSpeed] = useState<CompareSpeed>(1);
 
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
@@ -75,7 +89,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   // Đăng ký listener nhận sự kiện từ Engine
   useEffect(() => {
     morseAudio.setOnProgress((textIndex, _char) => {
-      setActiveCharIndex(textIndex);
+      setActiveMorseIndex(textIndex);
     });
 
     return () => {
@@ -96,36 +110,38 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   }, [board.groups]);
 
   const playBoard = async () => {
-    // 1. Đang phát -> Chuyển sang TẠM DỪNG
+    // Dừng đối chiếu nếu đang chạy
+    if (isComparing) {
+      resetComparison();
+    }
+
     if (isPlaying && !isPaused) {
       morseAudio.pause();
       setIsPaused(true);
       return;
     }
 
-    // 2. Đang tạm dừng -> TIẾP TỤC phát từ vị trí cũ
     if (isPlaying && isPaused) {
       setIsPaused(false);
       morseAudio.resume();
       return;
     }
 
-    // 3. Chưa phát (hoặc đã kết thúc/reset) -> BẮT ĐẦU PHÁT MỚI
     morseAudio.setFrequency(frequency);
     morseAudio.setWpm(wpm);
     morseAudio.setVolume(0.5);
     setIsPlaying(true);
     setIsPaused(false);
     setHasPlayed(true);
+    setActiveCompareIndex(-1); // Reset highlight đối chiếu
 
     try {
       await morseAudio.playText(fullPlaybackText);
     } finally {
-      // Chỉ tắt hoàn toàn khi kết thúc bài (không bị pause dở)
       if (!morseAudio.getIsPaused()) {
         setIsPlaying(false);
         setIsPaused(false);
-        setActiveCharIndex(-1);
+        setActiveMorseIndex(-1);
       }
     }
   };
@@ -136,52 +152,103 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       setIsPlaying(false);
       setIsPaused(false);
       setHasPlayed(false);
-      setActiveCharIndex(-1);
+      setActiveMorseIndex(-1);
     }
   };
 
   const compareBoard = async () => {
-    if (isLoading) {
-      compareSessionRef.current += 1;
+    // Dừng phát điện nếu đang phát
+    if (isPlaying) {
+      handleResetAudio();
+    }
+
+    if (isComparing && !isComparePaused) {
+      isComparePausedRef.current = true;
+      setIsComparePaused(true);
       stopCharacterAudio();
-      setIsComparing(false);
-      setIsLoading(false);
+      return;
+    }
+
+    if (isComparing && isComparePaused) {
+      isComparePausedRef.current = false;
+      setIsComparePaused(false);
+      if (compareResumeResolverRef.current) {
+        compareResumeResolverRef.current();
+        compareResumeResolverRef.current = null;
+      }
       return;
     }
 
     const sessionId = compareSessionRef.current + 1;
     compareSessionRef.current = sessionId;
+    isComparePausedRef.current = false;
+    currentCharIndexRef.current = 0;
+
     setIsLoading(true);
     setIsComparing(true);
+    setIsComparePaused(false);
     setHasCompared(true);
+    setActiveMorseIndex(-1); // Xóa highlight phát điện
 
     try {
       const orderedCharacters = groups.flatMap(group => group.split(''));
-      for (const char of orderedCharacters) {
+
+      for (let i = 0; i < orderedCharacters.length; i++) {
         if (compareSessionRef.current !== sessionId) return;
 
+        currentCharIndexRef.current = i;
+        // Gán index chính xác từ 0, 1, 2...
+        setActiveCompareIndex(i);
+
+        while (isComparePausedRef.current) {
+          if (compareSessionRef.current !== sessionId) return;
+          await new Promise<void>(resolve => {
+            compareResumeResolverRef.current = resolve;
+          });
+        }
+
+        const char = orderedCharacters[i];
         const normalizedChar = char.toUpperCase();
         if (!normalizedChar) continue;
 
-        await playCharacterAudio(normalizedChar);
+        try {
+          await playCharacterAudio(normalizedChar, compareSpeed);
+        } catch {
+          // Bỏ qua lỗi ngắt âm giữa chừng
+        }
+
         if (compareSessionRef.current !== sessionId) return;
 
-        await new Promise(resolve => setTimeout(resolve, 180));
+        const baseGap = 180;
+        const adjustedGap = Math.max(50, Math.round(baseGap / compareSpeed));
+        await new Promise(resolve => setTimeout(resolve, adjustedGap));
       }
     } finally {
       if (compareSessionRef.current === sessionId) {
+        isComparePausedRef.current = false;
         setIsComparing(false);
+        setIsComparePaused(false);
         setIsLoading(false);
+        setActiveCompareIndex(-1);
       }
     }
   };
 
   const resetComparison = () => {
     compareSessionRef.current += 1;
+    isComparePausedRef.current = false;
     stopCharacterAudio();
+
+    if (compareResumeResolverRef.current) {
+      compareResumeResolverRef.current();
+      compareResumeResolverRef.current = null;
+    }
+
     setIsComparing(false);
+    setIsComparePaused(false);
     setIsLoading(false);
     setHasCompared(false);
+    setActiveCompareIndex(-1);
   };
 
   return (
@@ -253,17 +320,17 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             <View style={styles.sheetTopDot} />
           </View>
 
-          {/* 1. Dấu hiệu bắt đầu '=' (nằm tại vị trí 0 của chuỗi fullPlaybackText) */}
+          {/* 1. Dấu hiệu bắt đầu '=' */}
           <View
             style={[
               styles.markerBadge,
-              activeCharIndex === 0 && styles.markerBadgeActive,
+              activeMorseIndex === 0 && styles.markerBadgeActive,
             ]}
           >
             <Text
               style={[
                 styles.markerText,
-                activeCharIndex === 0 && styles.markerTextActive,
+                activeMorseIndex === 0 && styles.markerTextActive,
               ]}
             >
               = (BẮT ĐẦU PHÁT)
@@ -291,11 +358,13 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                         const currentGroupGlobalIndex =
                           rowIndex * groupsPerRow + groupIdx;
 
-                        // Vì board.groups[0] là '=', nên nhóm đầu tiên groups[0]
-                        // trong fullPlaybackText bắt đầu sau "= " (tức là index 2)
-                        // Mỗi nhóm 5 ký tự + 1 dấu cách = 6 ký tự
-                        const groupStartIndexInText =
+                        // Index khi phát Morse (bỏ qua '= ')
+                        const morseGroupStartIndex =
                           2 + currentGroupGlobalIndex * 6;
+
+                        // Index khi đối chiếu (đếm tuần tự 5 ký tự mỗi nhóm)
+                        const compareGroupStartIndex =
+                          currentGroupGlobalIndex * 5;
 
                         return (
                           <View
@@ -309,10 +378,16 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                               }}
                             >
                               {group.split('').map((char, charOffset) => {
-                                const currentCharIndex =
-                                  groupStartIndexInText + charOffset;
+                                // Vị trí thực tế của ký tự
+                                const morseCharIdx =
+                                  morseGroupStartIndex + charOffset;
+                                const compareCharIdx =
+                                  compareGroupStartIndex + charOffset;
+
+                                // Highlight nếu khớp với luồng Morse HOẶC luồng Đối chiếu
                                 const isHighlighted =
-                                  activeCharIndex === currentCharIndex;
+                                  activeMorseIndex === morseCharIdx ||
+                                  activeCompareIndex === compareCharIdx;
 
                                 return (
                                   <Text
@@ -340,19 +415,19 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             )}
           </View>
 
-          {/* 3. Dấu hiệu kết thúc '+' (nằm ở ký tự cuối cùng của chuỗi fullPlaybackText) */}
+          {/* 3. Dấu hiệu kết thúc '+' */}
           <View
             style={[
               styles.markerBadge,
               styles.markerBadgeEnd,
-              activeCharIndex === fullPlaybackText.length - 1 &&
+              activeMorseIndex === fullPlaybackText.length - 1 &&
                 styles.markerBadgeActive,
             ]}
           >
             <Text
               style={[
                 styles.markerText,
-                activeCharIndex === fullPlaybackText.length - 1 &&
+                activeMorseIndex === fullPlaybackText.length - 1 &&
                   styles.markerTextActive,
               ]}
             >
@@ -411,30 +486,65 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             thống đọc âm từng chữ giúp bạn dò lỗi.
           </Text>
 
+          {/* Hàng chọn tốc độ đọc: 1x, 1.25x, 1.5x, 2x */}
+          <View style={styles.speedSelectorRow}>
+            <Text style={styles.speedLabel}>Tốc độ đọc:</Text>
+            <View style={styles.speedButtonGroup}>
+              {COMPARE_SPEEDS.map(speed => (
+                <TouchableOpacity
+                  key={speed}
+                  disabled={isComparing}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.speedChip,
+                    compareSpeed === speed && styles.speedChipActive,
+                    isComparing && { opacity: 0.6 },
+                  ]}
+                  onPress={() => setCompareSpeed(speed)}
+                >
+                  <Text
+                    style={[
+                      styles.speedChipText,
+                      compareSpeed === speed && styles.speedChipTextActive,
+                    ]}
+                  >
+                    {speed}x
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Nút bấm đối chiếu */}
           <View style={styles.compareBtnRow}>
             <TouchableOpacity
               activeOpacity={0.85}
               style={[
                 styles.compareBtn,
-                isComparing && styles.compareBtnActive,
+                isComparing && !isComparePaused && styles.compareBtnActive,
+                isComparePaused && { backgroundColor: '#F59E0B' }, // Nền màu cam khi tạm dừng
               ]}
               onPress={compareBoard}
             >
-              {isComparing ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+              {isComparing && !isComparePaused ? (
+                <Pause size={18} color="#FFFFFF" />
               ) : (
                 <Check size={18} color="#FFFFFF" />
               )}
               <Text style={styles.compareBtnText}>
-                {isComparing ? 'Đang đọc dò bài...' : 'Đọc đối chiếu từng chữ'}
+                {isComparing && !isComparePaused
+                  ? 'Tạm dừng đối chiếu'
+                  : isComparePaused
+                  ? 'Tiếp tục đối chiếu'
+                  : `Đọc đối chiếu (${compareSpeed}x)`}
               </Text>
             </TouchableOpacity>
 
             {hasCompared && (
               <TouchableOpacity
+                accessibilityLabel="Đặt lại đối chiếu"
                 activeOpacity={0.8}
-                disabled={isComparing}
-                style={[styles.iconButton, isComparing && { opacity: 0.5 }]}
+                style={styles.iconButton}
                 onPress={resetComparison}
               >
                 <RotateCcw size={18} color="#475569" />
