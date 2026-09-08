@@ -82,7 +82,7 @@ function ChatScreen() {
   const playMorseSignal = useCallback(async (playback: NonNullable<Message['playback']>) => {
     await morseAudio.start();
     morseAudio.setFrequency(600);
-    morseAudio.setCpm(40);
+    morseAudio.setCpm(50);
     morseAudio.setVolume(1);
     if (playback.code) {
       await morseAudio.playMorse(playback.code);
