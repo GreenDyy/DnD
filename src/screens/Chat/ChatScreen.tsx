@@ -4,6 +4,7 @@ import {
   View,
   StyleSheet,
   FlatList,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,6 +22,7 @@ import type { Message } from '../../components/Chat';
 import { colors } from '../../theme/colors';
 import { AI_NAME, REPLIES } from '../../constants';
 import { morseAudio } from '../../audio/MorseAudioEngine';
+import { images } from '../../assets';
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
@@ -368,19 +370,24 @@ function ChatScreen() {
           onBack={() => navigation.goBack()}
         />
 
-        <FlatList
-          ref={flatListRef}
-          style={styles.messageList}
-          contentContainerStyle={styles.messageListContent}
-          data={messages}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={10}
-          onContentSizeChange={scrollToBottom}
-        />
+        <ImageBackground
+          source={images.background}
+          style={styles.messageBackground}
+          imageStyle={styles.messageBackgroundImage}>
+          <FlatList
+            ref={flatListRef}
+            style={styles.messageList}
+            contentContainerStyle={styles.messageListContent}
+            data={messages}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            onContentSizeChange={scrollToBottom}
+          />
+        </ImageBackground>
 
         <ChatInput
           input={input}
@@ -404,6 +411,12 @@ const styles = StyleSheet.create({
   },
   messageList: {
     flex: 1,
+  },
+  messageBackground: {
+    flex: 1,
+  },
+  messageBackgroundImage: {
+    resizeMode: 'stretch',
   },
   messageListContent: {
     padding: 16,
