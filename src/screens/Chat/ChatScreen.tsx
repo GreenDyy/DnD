@@ -79,6 +79,18 @@ function ChatScreen() {
     });
   }, [cancelGenerate]);
 
+  const playMorseSignal = useCallback(async (playback: NonNullable<Message['playback']>) => {
+    await morseAudio.start();
+    morseAudio.setFrequency(600);
+    morseAudio.setCpm(40);
+    morseAudio.setVolume(1);
+    if (playback.code) {
+      await morseAudio.playMorse(playback.code);
+    } else {
+      await morseAudio.playText(playback.character);
+    }
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isGenerating) return;
@@ -98,19 +110,16 @@ function ChatScreen() {
       // === CASE 0: Đang chờ xác nhận phát âm thanh Morse ===
       if (pendingPlayChar) {
         if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
-          await morseAudio.start();
-          morseAudio.setFrequency(600);
-          morseAudio.setCpm(40);
-          morseAudio.setVolume(1);
-          if (pendingPlayChar.code) {
-            await morseAudio.playMorse(pendingPlayChar.code);
-          } else {
-            await morseAudio.playText(pendingPlayChar.character);
-          }
+          await playMorseSignal(pendingPlayChar);
           reply = `Đã phát tín hiệu ${pendingPlayChar.character}.`;
           setPendingPlayChar(null);
 
-          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+            playback: pendingPlayChar,
+          };
           setTimeout(() => {
             setMessages(prev => [...prev.slice(0, -1), botMessage]);
           }, 400);
@@ -239,6 +248,10 @@ function ChatScreen() {
       // === CASE 4: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
       const askResult = knowledgeService.ask(text);
 
+      if (!askResult) {
+        throw new Error('Không thể xử lý câu hỏi Morse');
+      }
+
       if (askResult.type === 'ambiguous_number') {
         setPendingNumber(askResult.answer);
         reply = askResult.message;
@@ -305,7 +318,7 @@ function ChatScreen() {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, pendingIntent, pendingNumber, pendingPlayChar, generate, scrollToBottom]);
+  }, [input, isGenerating, isReady, pendingIntent, pendingNumber, pendingPlayChar, generate, playMorseSignal, scrollToBottom]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`
@@ -329,11 +342,19 @@ function ChatScreen() {
     }
   }, [navigation]);
 
+  const handleReplay = useCallback(async (playback: NonNullable<Message['playback']>) => {
+    try {
+      await playMorseSignal(playback);
+    } catch (err) {
+      console.warn('[MorseAudio] replay failed', err);
+    }
+  }, [playMorseSignal]);
+
   const keyExtractor = useCallback((item: Message) => item.id, []);
 
   const renderItem = useCallback(({ item }: { item: Message }) => (
-    <MessageItem item={item} onAction={handleAction} />
-  ), [handleAction]);
+    <MessageItem item={item} onAction={handleAction} onReplay={handleReplay} />
+  ), [handleAction, handleReplay]);
 
   return (
     <SafeAreaView style={styles.container}>
