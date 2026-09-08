@@ -33,7 +33,6 @@ interface CharacterOption {
 const characterOptions: ReadonlyArray<CharacterOption> = [
   { value: 'letter', label: 'Chữ cái', desc: 'A - Z' },
   { value: 'number', label: 'Chữ số', desc: '0 - 9' },
-  { value: 'shortNumber', label: 'Số tắt', desc: '0 - 9' },
   { value: 'mixed', label: 'Hỗn hợp', desc: 'Chữ & Số' },
 ];
 

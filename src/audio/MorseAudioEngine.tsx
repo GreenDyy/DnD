@@ -33,6 +33,9 @@ class MorseAudioEngine {
   // Đánh dấu hiện có đang phát tiếng beep hay không
   private playing = false;
 
+  // Đánh dấu có đang sử dụng dạng số tắt hay không
+  private useShortNumbers = false;
+
   // Trạng thái tạm dừng / tiếp tục
   private isPaused = false;
   private stopRequested = false;
@@ -51,6 +54,15 @@ class MorseAudioEngine {
    */
   setOnProgress(callback: MorseProgressCallback | null) {
     this.onProgressCallback = callback;
+  }
+
+  // Thêm setter để UI bật/tắt chế độ số tắt
+  setUseShortNumbers(enabled: boolean) {
+    this.useShortNumbers = enabled;
+  }
+
+  getUseShortNumbers() {
+    return this.useShortNumbers;
   }
 
   // Tiện ích kiểm tra trạng thái bên ngoài
@@ -328,7 +340,8 @@ class MorseAudioEngine {
       }
 
       // Đổi ký tự sang Morse (ví dụ 'A' -> '.-')
-      const morsePattern = textToMorse(char);
+      const mode = this.useShortNumbers ? 'shortNumber' : 'standard';
+      const morsePattern = textToMorse(char, mode);
       if (morsePattern) {
         await this.playSingleMorseChar(morsePattern, token);
         // Nghỉ giữa các ký tự trong cùng một từ/nhóm (3 đơn vị thời gian)

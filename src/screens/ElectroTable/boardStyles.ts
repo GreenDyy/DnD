@@ -387,5 +387,31 @@ export const createElectricBoardStyles = (
       fontSize: 11,
       color: '#94A3B8',
     },
+    toggleCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    toggleInfo: {
+      flex: 1,
+    },
+    toggleTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#0F172A',
+      marginBottom: 2,
+    },
+    toggleDesc: {
+      fontSize: 12,
+      color: '#64748B',
+      lineHeight: 16,
+    },
   });
 };

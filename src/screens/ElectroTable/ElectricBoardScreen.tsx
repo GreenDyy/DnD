@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StatusBar,
+  Switch,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -54,6 +54,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
   const [hasCompared, setHasCompared] = useState(false);
+  const [useShortNumbers, setUseShortNumbers] = useState(false);
   const compareSessionRef = useRef(0);
 
   const params = route.params ?? defaultBoardParams;
@@ -82,6 +83,12 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       morseAudio.stop();
     };
   }, []);
+
+  // Cập nhật engine mỗi khi toggle
+  const handleToggleShortNumbers = (value: boolean) => {
+    setUseShortNumbers(value);
+    morseAudio.setUseShortNumbers(value);
+  };
 
   // Chuỗi phát đầy đủ: "= 12345 ABCDE +"
   const fullPlaybackText = useMemo(() => {
@@ -238,9 +245,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
               {characterType === 'letter'
                 ? 'ĐIỆN TÍN CHỮ CÁI'
                 : characterType === 'number'
-                ? 'ĐIỆN TÍN SỐ'
-                : characterType === 'shortNumber'
-                ? 'ĐIỆN TÍN SỐ TẮT'
+                ? `ĐIỆN TÍN SỐ ${useShortNumbers ? 'TẮT' : ''}`
                 : characterType === 'mixed'
                 ? 'ĐIỆN TÍN HỖN HỢP'
                 : 'BỨC ĐIỆN TÍN QUÂN SỰ'}
@@ -363,7 +368,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             style={[
               styles.playBtn,
               isPlaying && !isPaused && styles.playBtnActive,
-              isPaused && styles.playBtnPaused, // Gợi ý: màu cam hổ phách
+              isPaused && { backgroundColor: '#D97706' }, // Gợi ý: màu cam hổ phách
             ]}
             onPress={playBoard}
           >
@@ -442,6 +447,25 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Cài đặt âm lượng & tốc độ</Text>
         </View>
+
+        {characterType !== 'letter' && (
+          <View style={styles.toggleCard}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Chế độ phát số tắt</Text>
+              <Text style={styles.toggleDesc}>
+                Rút ngắn mã Morse cho các số 0 (-), 1 (.-), 2 (..-), 8 (-..), 9
+                (-.)
+              </Text>
+            </View>
+            <Switch
+              value={useShortNumbers}
+              onValueChange={handleToggleShortNumbers}
+              disabled={isPlaying}
+              trackColor={{ false: '#CBD5E1', true: '#818CF8' }}
+              thumbColor={useShortNumbers ? '#4F46E5' : '#F8FAFC'}
+            />
+          </View>
+        )}
 
         {/* Slider Tần số */}
         <View style={styles.sliderCard}>
