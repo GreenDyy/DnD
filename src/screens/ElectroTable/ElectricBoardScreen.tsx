@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Platform,
   ScrollView,
   StatusBar,
   Switch,
   Text,
+  TextInput, // Đã bổ sung import TextInput
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -11,7 +13,9 @@ import {
 import Slider from '@react-native-community/slider';
 import {
   ArrowLeft,
+  Calendar,
   Check,
+  Clock,
   Headphones,
   Pause,
   Play,
@@ -21,12 +25,23 @@ import {
 } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { playCharacterAudio, stopCharacterAudio } from '../../assets/audioMap';
 import { generateMorseBoard } from '../../utils/morseGenerator';
 import { createElectricBoardStyles } from './boardStyles';
 import { type RootStackParamList } from '../../types/navigation';
+import {
+  formatDatePart,
+  formatTimePart,
+  getDisplayPreamble,
+  getPlaybackPreamble,
+  type PreambleData,
+} from '../../utils/preambleHelper';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 
@@ -47,46 +62,136 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     groupsPerRow,
   );
 
-  // Chỉ số ký tự khi phát tín hiệu Morse (= 12345 ABCDE +)
-  const [activeMorseIndex, setActiveMorseIndex] = useState<number>(-1);
+  const params = route.params ?? defaultBoardParams;
+  const { groupCount, characterType } = params;
 
-  // Chỉ số ký tự khi đọc đối chiếu (chỉ tính các ký tự trong các nhóm từ 0 -> n)
+  // 1. KHỞI TẠO BOARD VÀ GROUPS LÊN ĐẦU TIÊN
+  const board = useMemo(
+    () => generateMorseBoard({ groupCount, characterType }),
+    [groupCount, characterType],
+  );
+  const groups = useMemo(() => board.groups.slice(1, -1), [board.groups]);
+
+  // Các state phát & highlight
+  const [activeMorseIndex, setActiveMorseIndex] = useState<number>(-1);
   const [activeCompareIndex, setActiveCompareIndex] = useState<number>(-1);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+
   // Quản lý trạng thái đối chiếu
   const [isComparing, setIsComparing] = useState(false);
   const [isComparePaused, setIsComparePaused] = useState(false);
   const [hasCompared, setHasCompared] = useState(false);
   const [useShortNumbers, setUseShortNumbers] = useState(false);
+
   const compareSessionRef = useRef(0);
   const currentCharIndexRef = useRef(0);
   const compareResumeResolverRef = useRef<(() => void) | null>(null);
   const isComparePausedRef = useRef(false);
 
-  const params = route.params ?? defaultBoardParams;
-  const { groupCount, characterType } = params;
   const [frequency, setFrequency] = useState(600);
   const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
   const cpm = wpm * 5;
 
-  // Các mốc tốc độ đối chiếu
+  // Cấu hình đầu điện
+  const [hasPreamble, setHasPreamble] = useState(false);
+  const [nrValue, setNrValue] = useState('01/HL');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
+
+  // 2. KHỞI TẠO PREAMBLE DATA (ĐÃ CÓ GROUPS AN TOÀN)
+  const preambleData: PreambleData = useMemo(
+    () => ({
+      nr: nrValue,
+      groupCount: groups.length,
+      date: selectedDate,
+      time: selectedTime,
+    }),
+    [nrValue, groups.length, selectedDate, selectedTime],
+  );
+
+  const preamblePlaybackText = useMemo(() => {
+    return getPlaybackPreamble(preambleData);
+  }, [preambleData]);
+
+  const preambleDisplayText = useMemo(() => {
+    return getDisplayPreamble(preambleData);
+  }, [preambleData]);
+
+  // Ghép chuỗi hoàn chỉnh phát
+  const fullPlaybackText = useMemo(() => {
+    const bodyText = groups.join(' ');
+    if (hasPreamble) {
+      return `${preamblePlaybackText} = ${bodyText} +`;
+    }
+    return `= ${bodyText} +`;
+  }, [hasPreamble, preamblePlaybackText, groups]);
+
+  const equalSignIndex = useMemo(() => {
+    if (hasPreamble) {
+      return preamblePlaybackText.length + 1;
+    }
+    return 0;
+  }, [hasPreamble, preamblePlaybackText]);
+
+  const firstGroupStartIndex = equalSignIndex + 2;
+
+  const onPickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setPickerMode(null);
+    }
+    if (event.type === 'set' && date) {
+      if (pickerMode === 'date') {
+        setSelectedDate(date);
+      } else if (pickerMode === 'time') {
+        setSelectedTime(date);
+      }
+    }
+  };
+
+  const showDatePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: selectedDate,
+        onChange: (event: DateTimePickerEvent, date?: Date) => {
+          if (event.type === 'set' && date) {
+            setSelectedDate(date);
+          }
+        },
+        mode: 'date',
+        is24Hour: true,
+      });
+    } else {
+      setPickerMode('date');
+    }
+  };
+
+  const showTimePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: selectedTime,
+        onChange: (event: DateTimePickerEvent, date?: Date) => {
+          if (event.type === 'set' && date) {
+            setSelectedTime(date);
+          }
+        },
+        mode: 'time',
+        is24Hour: true,
+      });
+    } else {
+      setPickerMode('time');
+    }
+  };
+
   const COMPARE_SPEEDS = [1, 1.25, 1.5, 2] as const;
   type CompareSpeed = (typeof COMPARE_SPEEDS)[number];
-
-  // Tốc độ phát âm thanh đối chiếu (1x, 1.25x, 1.5x, 2x)
   const [compareSpeed, setCompareSpeed] = useState<CompareSpeed>(1);
 
-  const board = useMemo(
-    () => generateMorseBoard({ groupCount, characterType }),
-    [groupCount, characterType],
-  );
-  const groups = board.groups.slice(1, -1);
-
-  // Đăng ký listener nhận sự kiện từ Engine
+  // Lắng nghe progress từ engine
   useEffect(() => {
     morseAudio.setOnProgress((textIndex, _char) => {
       setActiveMorseIndex(textIndex);
@@ -98,19 +203,12 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     };
   }, []);
 
-  // Cập nhật engine mỗi khi toggle
   const handleToggleShortNumbers = (value: boolean) => {
     setUseShortNumbers(value);
     morseAudio.setUseShortNumbers(value);
   };
 
-  // Chuỗi phát đầy đủ: "= 12345 ABCDE +"
-  const fullPlaybackText = useMemo(() => {
-    return board.groups.join(' ');
-  }, [board.groups]);
-
   const playBoard = async () => {
-    // Dừng đối chiếu nếu đang chạy
     if (isComparing) {
       resetComparison();
     }
@@ -133,7 +231,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     setIsPlaying(true);
     setIsPaused(false);
     setHasPlayed(true);
-    setActiveCompareIndex(-1); // Reset highlight đối chiếu
+    setActiveCompareIndex(-1);
 
     try {
       await morseAudio.playText(fullPlaybackText);
@@ -157,7 +255,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   };
 
   const compareBoard = async () => {
-    // Dừng phát điện nếu đang phát
     if (isPlaying) {
       handleResetAudio();
     }
@@ -188,7 +285,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     setIsComparing(true);
     setIsComparePaused(false);
     setHasCompared(true);
-    setActiveMorseIndex(-1); // Xóa highlight phát điện
+    setActiveMorseIndex(-1);
 
     try {
       const orderedCharacters = groups.flatMap(group => group.split(''));
@@ -197,7 +294,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         if (compareSessionRef.current !== sessionId) return;
 
         currentCharIndexRef.current = i;
-        // Gán index chính xác từ 0, 1, 2...
         setActiveCompareIndex(i);
 
         while (isComparePausedRef.current) {
@@ -214,7 +310,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         try {
           await playCharacterAudio(normalizedChar, compareSpeed);
         } catch {
-          // Bỏ qua lỗi ngắt âm giữa chừng
+          // Bỏ qua lỗi ngắt âm dở
         }
 
         if (compareSessionRef.current !== sessionId) return;
@@ -312,32 +408,47 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
               {characterType === 'letter'
                 ? 'ĐIỆN TÍN CHỮ CÁI'
                 : characterType === 'number'
-                ? `ĐIỆN TÍN SỐ ${useShortNumbers ? 'TẮT' : ''}`
-                : characterType === 'mixed'
-                ? 'ĐIỆN TÍN HỖN HỢP'
-                : 'BỨC ĐIỆN TÍN QUÂN SỰ'}
+                ? `ĐIỆN TÍN SỐ ${useShortNumbers ? '(SỐ TẮT)' : ''}`
+                : 'ĐIỆN TÍN HỖN HỢP'}
             </Text>
             <View style={styles.sheetTopDot} />
           </View>
 
-          {/* 1. Dấu hiệu bắt đầu '=' */}
+          {/* KHỐI HIỂN THỊ ĐẦU ĐIỆN */}
+          {hasPreamble && (
+            <View
+              style={[
+                styles.preambleBanner,
+                activeMorseIndex >= 0 &&
+                  activeMorseIndex < equalSignIndex &&
+                  styles.preambleBannerActive,
+              ]}
+            >
+              <Text style={styles.preambleTag}>[ĐẦU ĐIỆN]</Text>
+              <Text style={styles.preambleContentText}>
+                {preambleDisplayText}
+              </Text>
+            </View>
+          )}
+
+          {/* Dấu hiệu bắt đầu '=' (so khớp với equalSignIndex thay vì 0) */}
           <View
             style={[
               styles.markerBadge,
-              activeMorseIndex === 0 && styles.markerBadgeActive,
+              activeMorseIndex === equalSignIndex && styles.markerBadgeActive,
             ]}
           >
             <Text
               style={[
                 styles.markerText,
-                activeMorseIndex === 0 && styles.markerTextActive,
+                activeMorseIndex === equalSignIndex && styles.markerTextActive,
               ]}
             >
               = (BẮT ĐẦU PHÁT)
             </Text>
           </View>
 
-          {/* 2. Lưới các nhóm ký tự */}
+          {/* Lưới các nhóm ký tự */}
           <View style={styles.gridContainer}>
             {Array.from(
               { length: Math.ceil(groups.length / groupsPerRow) },
@@ -358,11 +469,11 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                         const currentGroupGlobalIndex =
                           rowIndex * groupsPerRow + groupIdx;
 
-                        // Index khi phát Morse (bỏ qua '= ')
+                        // Index phát Morse (tính chuẩn từ firstGroupStartIndex)
                         const morseGroupStartIndex =
-                          2 + currentGroupGlobalIndex * 6;
+                          firstGroupStartIndex + currentGroupGlobalIndex * 6;
 
-                        // Index khi đối chiếu (đếm tuần tự 5 ký tự mỗi nhóm)
+                        // Index đối chiếu (5 ký tự mỗi nhóm)
                         const compareGroupStartIndex =
                           currentGroupGlobalIndex * 5;
 
@@ -378,13 +489,11 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                               }}
                             >
                               {group.split('').map((char, charOffset) => {
-                                // Vị trí thực tế của ký tự
                                 const morseCharIdx =
                                   morseGroupStartIndex + charOffset;
                                 const compareCharIdx =
                                   compareGroupStartIndex + charOffset;
 
-                                // Highlight nếu khớp với luồng Morse HOẶC luồng Đối chiếu
                                 const isHighlighted =
                                   activeMorseIndex === morseCharIdx ||
                                   activeCompareIndex === compareCharIdx;
@@ -415,7 +524,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             )}
           </View>
 
-          {/* 3. Dấu hiệu kết thúc '+' */}
+          {/* Dấu hiệu kết thúc '+' */}
           <View
             style={[
               styles.markerBadge,
@@ -443,7 +552,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             style={[
               styles.playBtn,
               isPlaying && !isPaused && styles.playBtnActive,
-              isPaused && { backgroundColor: '#D97706' }, // Gợi ý: màu cam hổ phách
+              isPaused && { backgroundColor: '#D97706' },
             ]}
             onPress={playBoard}
           >
@@ -486,7 +595,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             thống đọc âm từng chữ giúp bạn dò lỗi.
           </Text>
 
-          {/* Hàng chọn tốc độ đọc: 1x, 1.25x, 1.5x, 2x */}
           <View style={styles.speedSelectorRow}>
             <Text style={styles.speedLabel}>Tốc độ đọc:</Text>
             <View style={styles.speedButtonGroup}>
@@ -515,14 +623,13 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             </View>
           </View>
 
-          {/* Nút bấm đối chiếu */}
           <View style={styles.compareBtnRow}>
             <TouchableOpacity
               activeOpacity={0.85}
               style={[
                 styles.compareBtn,
                 isComparing && !isComparePaused && styles.compareBtnActive,
-                isComparePaused && { backgroundColor: '#F59E0B' }, // Nền màu cam khi tạm dừng
+                isComparePaused && { backgroundColor: '#F59E0B' },
               ]}
               onPress={compareBoard}
             >
@@ -622,6 +729,83 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             <Text style={styles.rangeSub}>300 CPM (Nhanh)</Text>
           </View>
         </View>
+
+        {/* Cài đặt Đầu điện */}
+        <View style={styles.preambleConfigCard}>
+          <View style={styles.toggleCard}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Phát kèm đầu điện</Text>
+              <Text style={styles.toggleDesc}>
+                Lặp lại 2 lần: NR - Số nhóm - Ngày - Giờ
+              </Text>
+            </View>
+            <Switch
+              value={hasPreamble}
+              onValueChange={setHasPreamble}
+              disabled={isPlaying}
+              trackColor={{ false: '#CBD5E1', true: '#818CF8' }}
+              thumbColor={hasPreamble ? '#4F46E5' : '#F8FAFC'}
+            />
+          </View>
+
+          {hasPreamble && (
+            <View style={styles.preambleForm}>
+              <View style={styles.preambleInputRow}>
+                <Text style={styles.preambleFieldLabel}>Số điện (NR):</Text>
+                <TextInput
+                  value={nrValue}
+                  onChangeText={setNrValue}
+                  placeholder="01/HL"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="characters"
+                  editable={!isPlaying}
+                  style={styles.preambleTextInput}
+                />
+              </View>
+
+              <View style={styles.dateTimeActionRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  disabled={isPlaying}
+                  style={styles.pickerTriggerBtn}
+                  onPress={showDatePicker}
+                >
+                  <Calendar size={14} color="#4F46E5" />
+                  <Text style={styles.pickerTriggerText}>
+                    Ngày: {formatDatePart(selectedDate)}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  disabled={isPlaying}
+                  style={styles.pickerTriggerBtn}
+                  onPress={showTimePicker}
+                >
+                  <Clock size={14} color="#4F46E5" />
+                  <Text style={styles.pickerTriggerText}>
+                    Giờ: {formatTimePart(selectedTime)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.previewBox}>
+                <Text style={styles.previewLabel}>Trình tự phát x2:</Text>
+                <Text style={styles.previewText}>{preamblePlaybackText}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {pickerMode && (
+          <DateTimePicker
+            value={pickerMode === 'date' ? selectedDate : selectedTime}
+            mode={pickerMode}
+            is24Hour={true}
+            display="default"
+            onChange={onPickerChange}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
