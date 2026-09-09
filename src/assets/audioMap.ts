@@ -100,30 +100,71 @@ function loadSound(source: string): Promise<Sound> {
   return loadPromise;
 }
 
+let activeResolve: (() => void) | null = null;
+let stopTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Phát âm thanh cho ký tự đã cho, trả về một Promise để xử lý kết quả
-export async function playCharacterAudio(char: string): Promise<void> {
+export async function playCharacterAudio(
+  char: string,
+  speed: number = 1,
+): Promise<void> {
   const normalized = char.toUpperCase();
   const nativeName =
     getCharacterAudioName(normalized) ?? getCharacterAudioName('A') ?? 'a';
 
   const sound = await loadSound(nativeName);
   activeSound = sound;
+  sound.setSpeed(speed);
 
-  await new Promise<void>((resolve, reject) => {
+  // Chỉ lấy 0.7s (700ms) đầu. Khi tăng tốc (speed > 1), thời gian sẽ co lại tương ứng
+  const PLAY_DURATION_MS = Math.round(700 / speed);
+
+  await new Promise<void>(resolve => {
+    activeResolve = resolve;
+
+    const cleanup = () => {
+      if (stopTimer) {
+        clearTimeout(stopTimer);
+        stopTimer = null;
+      }
+      activeSound = null;
+      if (activeResolve) {
+        activeResolve();
+        activeResolve = null;
+      }
+    };
+
     sound.stop(() => {
-      sound.play(success => {
-        if (!success) {
-          reject(new Error(`Không phát được âm thanh cho ký tự: ${char}`));
-          return;
-        }
-        activeSound = null;
-        resolve();
+      sound.play(_success => {
+        // Kích hoạt nếu file kết thúc trước 0.5s
+        cleanup();
       });
+
+      // Tự ngắt sau 0.5s đầu để bỏ đoạn im lặng phía sau
+      stopTimer = setTimeout(() => {
+        sound.stop(() => {
+          cleanup();
+        });
+      }, PLAY_DURATION_MS);
     });
   });
 }
 
 export function stopCharacterAudio(): void {
-  activeSound?.stop();
-  activeSound = null;
+  if (stopTimer) {
+    clearTimeout(stopTimer);
+    stopTimer = null;
+  }
+  if (activeSound) {
+    activeSound.stop(() => {
+      activeSound = null;
+      if (activeResolve) {
+        activeResolve();
+        activeResolve = null;
+      }
+    });
+  } else if (activeResolve) {
+    activeResolve();
+    activeResolve = null;
+  }
 }

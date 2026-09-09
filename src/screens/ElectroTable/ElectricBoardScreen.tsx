@@ -1,21 +1,31 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
   ScrollView,
+  StatusBar,
+  Switch,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { ArrowLeft, Check, Pause, Play, RotateCcw } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Check,
+  Headphones,
+  Pause,
+  Play,
+  RotateCcw,
+  Sliders,
+  Volume2,
+} from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { playCharacterAudio, stopCharacterAudio } from '../../assets/audioMap';
 import { generateMorseBoard } from '../../utils/morseGenerator';
-import { boardStyles } from './boardStyles';
+import { createElectricBoardStyles } from './boardStyles';
 import { type RootStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
@@ -27,40 +37,92 @@ const defaultBoardParams = {
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
-  const { width: screenWidth } = Dimensions.get('window');
-  const usableWidth = Math.max(screenWidth - 40, 0);
-  const boardGridWidth = Math.max(usableWidth - 108, 0);
-  const groupAreaWidth = Math.max(boardGridWidth - 36, 0);
-  const groupsPerRow = Math.max(
-    1,
-    Math.min(4, Math.floor((groupAreaWidth + 8) / 44)),
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  // Grid layout: 4 nhóm/hàng trên màn hình lớn hoặc 3 nhóm/hàng trên màn nhỏ
+  const groupsPerRow = screenWidth < 380 ? 3 : 4;
+  const styles = createElectricBoardStyles(
+    screenWidth,
+    screenHeight,
+    groupsPerRow,
   );
-  const groupCellWidth =
-    (groupAreaWidth - (groupsPerRow - 1) * 8) / groupsPerRow;
+
+  // Chỉ số ký tự khi phát tín hiệu Morse (= 12345 ABCDE +)
+  const [activeMorseIndex, setActiveMorseIndex] = useState<number>(-1);
+
+  // Chỉ số ký tự khi đọc đối chiếu (chỉ tính các ký tự trong các nhóm từ 0 -> n)
+  const [activeCompareIndex, setActiveCompareIndex] = useState<number>(-1);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+  // Quản lý trạng thái đối chiếu
   const [isComparing, setIsComparing] = useState(false);
+  const [isComparePaused, setIsComparePaused] = useState(false);
   const [hasCompared, setHasCompared] = useState(false);
+  const [useShortNumbers, setUseShortNumbers] = useState(false);
   const compareSessionRef = useRef(0);
+  const currentCharIndexRef = useRef(0);
+  const compareResumeResolverRef = useRef<(() => void) | null>(null);
+  const isComparePausedRef = useRef(false);
+
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
   const [frequency, setFrequency] = useState(600);
   const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
+
+  // Các mốc tốc độ đối chiếu
+  const COMPARE_SPEEDS = [1, 1.25, 1.5, 2] as const;
+  type CompareSpeed = (typeof COMPARE_SPEEDS)[number];
+
+  // Tốc độ phát âm thanh đối chiếu (1x, 1.25x, 1.5x, 2x)
+  const [compareSpeed, setCompareSpeed] = useState<CompareSpeed>(1);
+
   const board = useMemo(
     () => generateMorseBoard({ groupCount, characterType }),
     [groupCount, characterType],
   );
   const groups = board.groups.slice(1, -1);
 
+  // Đăng ký listener nhận sự kiện từ Engine
+  useEffect(() => {
+    morseAudio.setOnProgress((textIndex, _char) => {
+      setActiveMorseIndex(textIndex);
+    });
+
+    return () => {
+      morseAudio.setOnProgress(null);
+      morseAudio.stop();
+    };
+  }, []);
+
+  // Cập nhật engine mỗi khi toggle
+  const handleToggleShortNumbers = (value: boolean) => {
+    setUseShortNumbers(value);
+    morseAudio.setUseShortNumbers(value);
+  };
+
+  // Chuỗi phát đầy đủ: "= 12345 ABCDE +"
+  const fullPlaybackText = useMemo(() => {
+    return board.groups.join(' ');
+  }, [board.groups]);
+
   const playBoard = async () => {
+    // Dừng đối chiếu nếu đang chạy
     if (isComparing) {
+      resetComparison();
+    }
+
+    if (isPlaying && !isPaused) {
+      morseAudio.pause();
+      setIsPaused(true);
       return;
     }
 
-    if (isPlaying) {
-      morseAudio.pause();
-      setIsPlaying(false);
+    if (isPlaying && isPaused) {
+      setIsPaused(false);
+      morseAudio.resume();
       return;
     }
 
@@ -68,157 +130,214 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     morseAudio.setCpm(cpm);
     morseAudio.setVolume(0.5);
     setIsPlaying(true);
+    setIsPaused(false);
     setHasPlayed(true);
+    setActiveCompareIndex(-1); // Reset highlight đối chiếu
 
     try {
-      await morseAudio.playText(board.groups.join(' '));
+      await morseAudio.playText(fullPlaybackText);
     } finally {
+      if (!morseAudio.getIsPaused()) {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setActiveMorseIndex(-1);
+      }
+    }
+  };
+
+  const handleResetAudio = () => {
+    if (!isLoading) {
+      morseAudio.stop();
       setIsPlaying(false);
+      setIsPaused(false);
+      setHasPlayed(false);
+      setActiveMorseIndex(-1);
     }
   };
 
   const compareBoard = async () => {
+    // Dừng phát điện nếu đang phát
     if (isPlaying) {
+      handleResetAudio();
+    }
+
+    if (isComparing && !isComparePaused) {
+      isComparePausedRef.current = true;
+      setIsComparePaused(true);
+      stopCharacterAudio();
       return;
     }
 
-    if (isLoading) {
-      compareSessionRef.current += 1;
-      stopCharacterAudio();
-      setIsComparing(false);
-      setIsLoading(false);
+    if (isComparing && isComparePaused) {
+      isComparePausedRef.current = false;
+      setIsComparePaused(false);
+      if (compareResumeResolverRef.current) {
+        compareResumeResolverRef.current();
+        compareResumeResolverRef.current = null;
+      }
       return;
     }
 
     const sessionId = compareSessionRef.current + 1;
     compareSessionRef.current = sessionId;
+    isComparePausedRef.current = false;
+    currentCharIndexRef.current = 0;
+
     setIsLoading(true);
     setIsComparing(true);
+    setIsComparePaused(false);
     setHasCompared(true);
+    setActiveMorseIndex(-1); // Xóa highlight phát điện
 
     try {
       const orderedCharacters = groups.flatMap(group => group.split(''));
 
-      for (const char of orderedCharacters) {
-        if (compareSessionRef.current !== sessionId) {
-          return;
+      for (let i = 0; i < orderedCharacters.length; i++) {
+        if (compareSessionRef.current !== sessionId) return;
+
+        currentCharIndexRef.current = i;
+        // Gán index chính xác từ 0, 1, 2...
+        setActiveCompareIndex(i);
+
+        while (isComparePausedRef.current) {
+          if (compareSessionRef.current !== sessionId) return;
+          await new Promise<void>(resolve => {
+            compareResumeResolverRef.current = resolve;
+          });
         }
 
+        const char = orderedCharacters[i];
         const normalizedChar = char.toUpperCase();
-        if (!normalizedChar) {
-          continue;
+        if (!normalizedChar) continue;
+
+        try {
+          await playCharacterAudio(normalizedChar, compareSpeed);
+        } catch {
+          // Bỏ qua lỗi ngắt âm giữa chừng
         }
 
-        await playCharacterAudio(normalizedChar);
-        if (compareSessionRef.current !== sessionId) {
-          return;
-        }
-        await new Promise(resolve => {
-          setTimeout(() => resolve(undefined), 180);
-        });
+        if (compareSessionRef.current !== sessionId) return;
+
+        const baseGap = 180;
+        const adjustedGap = Math.max(50, Math.round(baseGap / compareSpeed));
+        await new Promise(resolve => setTimeout(resolve, adjustedGap));
       }
     } finally {
       if (compareSessionRef.current === sessionId) {
+        isComparePausedRef.current = false;
         setIsComparing(false);
+        setIsComparePaused(false);
         setIsLoading(false);
+        setActiveCompareIndex(-1);
       }
     }
   };
 
   const resetComparison = () => {
     compareSessionRef.current += 1;
+    isComparePausedRef.current = false;
     stopCharacterAudio();
+
+    if (compareResumeResolverRef.current) {
+      compareResumeResolverRef.current();
+      compareResumeResolverRef.current = null;
+    }
+
     setIsComparing(false);
+    setIsComparePaused(false);
     setIsLoading(false);
     setHasCompared(false);
+    setActiveCompareIndex(-1);
   };
 
   return (
-    <SafeAreaView style={boardStyles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+
+      {/* Top Header */}
+      <View style={styles.navBar}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          disabled={isLoading}
+          style={[styles.backButton, isLoading && { opacity: 0.5 }]}
+          onPress={() => !isLoading && navigation.goBack()}
+        >
+          <ArrowLeft size={20} color="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>BẢNG ĐIỆN LUYỆN TẬP</Text>
+        <View style={styles.navSpacer} />
+      </View>
+
       <ScrollView
-        contentContainerStyle={boardStyles.content}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={boardStyles.headerRow}>
-          <TouchableOpacity
-            accessibilityLabel="Quay lại màn hình thiết lập"
-            activeOpacity={0.8}
-            disabled={isLoading}
-            style={[boardStyles.backButton, isLoading && { opacity: 0.5 }]}
-            onPress={() => !isLoading && navigation.goBack()}
-          >
-            <ArrowLeft size={20} color="#132238" />
-          </TouchableOpacity>
-          <Text style={boardStyles.headerLabel}>BẢNG ĐIỆN</Text>
-          <View style={boardStyles.headerSpacer} />
+        {/* Banner Tổng quan */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>TÍN HIỆU VÔ TUYẾN</Text>
+            </View>
+            <View style={styles.statsPill}>
+              <Text style={styles.statsPillText}>{groups.length} Nhóm</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>Phòng thu & Đối chiếu</Text>
+          <Text style={styles.heroSubtitle}>
+            Nghe bức điện tín, chép ra giấy nháp và kích hoạt đối chiếu từng ký
+            tự.
+          </Text>
+
+          <View style={styles.quickSpecs}>
+            <View style={styles.specItem}>
+              <Volume2 size={15} color="#4F46E5" />
+              <Text style={styles.specLabel}>{frequency} Hz</Text>
+            </View>
+            <View style={styles.specDivider} />
+            <View style={styles.specItem}>
+              <Sliders size={15} color="#4F46E5" />
+              <Text style={styles.specLabel}>
+                {cpm} chữ/phút ({wpm} WPM)
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <View style={boardStyles.hero}>
-          <Text style={boardStyles.eyebrow}>BÀI LUYỆN MORSE</Text>
-          <Text
+        {/* BẢNG ĐIỆN MORSE (TELEGRAPH SHEET) */}
+        <View style={styles.boardCard}>
+          <View style={styles.sheetTopBanner}>
+            <View style={styles.sheetTopDot} />
+            <Text style={styles.sheetTopTitle}>
+              {characterType === 'letter'
+                ? 'ĐIỆN TÍN CHỮ CÁI'
+                : characterType === 'number'
+                ? `ĐIỆN TÍN SỐ ${useShortNumbers ? 'TẮT' : ''}`
+                : characterType === 'mixed'
+                ? 'ĐIỆN TÍN HỖN HỢP'
+                : 'BỨC ĐIỆN TÍN QUÂN SỰ'}
+            </Text>
+            <View style={styles.sheetTopDot} />
+          </View>
+
+          {/* 1. Dấu hiệu bắt đầu '=' */}
+          <View
             style={[
-              boardStyles.title,
-              screenWidth < 360 && boardStyles.titleSmall,
+              styles.markerBadge,
+              activeMorseIndex === 0 && styles.markerBadgeActive,
             ]}
           >
-            Nghe và thu báo
-          </Text>
-          <Text style={boardStyles.subtitle}>
-            Phát tín hiệu, ghi lại nhóm ký tự bạn nghe được và kiểm tra kết quả.
-          </Text>
-          <View style={boardStyles.metaRow}>
-            <Text style={boardStyles.meta}>{groups.length} NHÓM</Text>
-            <Text style={boardStyles.meta}>{frequency} HZ</Text>
-            <Text style={boardStyles.meta}>{cpm} CHỮ / PHÚT</Text>
+            <Text
+              style={[
+                styles.markerText,
+                activeMorseIndex === 0 && styles.markerTextActive,
+              ]}
+            >
+              = (BẮT ĐẦU PHÁT)
+            </Text>
           </View>
-        </View>
 
-        <View style={boardStyles.settingsPanel}>
-          <View style={boardStyles.settingRow}>
-            <Text style={boardStyles.settingLabel}>TẦN SỐ</Text>
-            <Text style={boardStyles.settingValue}>{frequency} Hz</Text>
-          </View>
-          <Slider
-            minimumValue={100}
-            maximumValue={3000}
-            step={10}
-            value={frequency}
-            onValueChange={setFrequency}
-          />
-          <View style={boardStyles.rangeRow}>
-            <Text style={boardStyles.rangeText}>100 Hz</Text>
-            <Text style={boardStyles.rangeText}>3000 Hz</Text>
-          </View>
-        </View>
-
-        <View style={boardStyles.settingsPanel}>
-          <View style={boardStyles.settingRow}>
-            <Text style={boardStyles.settingLabel}>TỐC ĐỘ</Text>
-            <Text style={boardStyles.settingValue}>{cpm} CHỮ / PHÚT</Text>
-          </View>
-          <Slider
-            minimumValue={5}
-            maximumValue={300}
-            step={5}
-            value={cpm}
-            onValueChange={setCpm}
-          />
-          <View style={boardStyles.rangeRow}>
-            <Text style={boardStyles.rangeText}>5 Chữ / phút</Text>
-            <Text style={boardStyles.rangeText}>300 Chữ / phút</Text>
-          </View>
-        </View>
-
-        <View style={boardStyles.sectionRow}>
-          <Text style={boardStyles.sectionTitle}>Bảng ký tự</Text>
-          <Text style={boardStyles.sectionHint}>5 KÝ TỰ / NHÓM</Text>
-        </View>
-
-        <View style={boardStyles.boardPanel}>
-          <View style={boardStyles.marker}>
-            <Text style={boardStyles.markerText}>=</Text>
-          </View>
-          <View style={boardStyles.boardGrid}>
+          {/* 2. Lưới các nhóm ký tự */}
+          <View style={styles.gridContainer}>
             {Array.from(
               { length: Math.ceil(groups.length / groupsPerRow) },
               (_, rowIndex) => {
@@ -232,113 +351,274 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
                 );
 
                 return (
-                  <View
-                    key={`board-row-${rowIndex}`}
-                    style={boardStyles.boardRow}
-                  >
-                    <View style={boardStyles.groupsInRow}>
-                      {rowGroups.map((group, groupIndex) => (
-                        <View
-                          key={`${group}-${groupIndex}`}
-                          style={[
-                            boardStyles.groupCell,
-                            {
-                              flex: 0,
-                              width: groupCellWidth,
-                              minWidth: groupCellWidth,
-                            },
-                          ]}
-                        >
-                          <Text style={boardStyles.groupText}>{group}</Text>
-                        </View>
-                      ))}
+                  <View key={`row-${rowIndex}`} style={styles.boardRow}>
+                    <View style={styles.cellsRow}>
+                      {rowGroups.map((group, groupIdx) => {
+                        const currentGroupGlobalIndex =
+                          rowIndex * groupsPerRow + groupIdx;
+
+                        // Index khi phát Morse (bỏ qua '= ')
+                        const morseGroupStartIndex =
+                          2 + currentGroupGlobalIndex * 6;
+
+                        // Index khi đối chiếu (đếm tuần tự 5 ký tự mỗi nhóm)
+                        const compareGroupStartIndex =
+                          currentGroupGlobalIndex * 5;
+
+                        return (
+                          <View
+                            key={`${group}-${groupIdx}`}
+                            style={styles.groupCell}
+                          >
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}
+                            >
+                              {group.split('').map((char, charOffset) => {
+                                // Vị trí thực tế của ký tự
+                                const morseCharIdx =
+                                  morseGroupStartIndex + charOffset;
+                                const compareCharIdx =
+                                  compareGroupStartIndex + charOffset;
+
+                                // Highlight nếu khớp với luồng Morse HOẶC luồng Đối chiếu
+                                const isHighlighted =
+                                  activeMorseIndex === morseCharIdx ||
+                                  activeCompareIndex === compareCharIdx;
+
+                                return (
+                                  <Text
+                                    key={`${char}-${charOffset}`}
+                                    style={[
+                                      styles.groupText,
+                                      isHighlighted && styles.charHighlighted,
+                                    ]}
+                                  >
+                                    {char}
+                                  </Text>
+                                );
+                              })}
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
-                    <Text style={boardStyles.rowNumber}>{endNumber}</Text>
+                    <View style={styles.rowCounter}>
+                      <Text style={styles.rowCounterText}>#{endNumber}</Text>
+                    </View>
                   </View>
                 );
               },
             )}
           </View>
-          <View style={[boardStyles.marker, boardStyles.endMarker]}>
-            <Text style={boardStyles.markerText}>+</Text>
+
+          {/* 3. Dấu hiệu kết thúc '+' */}
+          <View
+            style={[
+              styles.markerBadge,
+              styles.markerBadgeEnd,
+              activeMorseIndex === fullPlaybackText.length - 1 &&
+                styles.markerBadgeActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.markerText,
+                activeMorseIndex === fullPlaybackText.length - 1 &&
+                  styles.markerTextActive,
+              ]}
+            >
+              + (HẾT BỨC ĐIỆN)
+            </Text>
           </View>
         </View>
 
-        <View style={boardStyles.controlsRow}>
+        {/* Thanh Điều Khiển Phát Điện */}
+        <View style={styles.audioActionCard}>
           <TouchableOpacity
-            activeOpacity={0.8}
-            disabled={isComparing}
+            activeOpacity={0.85}
             style={[
-              boardStyles.playButton,
-              isPlaying && { backgroundColor: '#538885' },
-              isComparing && { opacity: 0.5 },
+              styles.playBtn,
+              isPlaying && !isPaused && styles.playBtnActive,
+              isPaused && { backgroundColor: '#D97706' }, // Gợi ý: màu cam hổ phách
             ]}
             onPress={playBoard}
           >
-            {isPlaying ? (
-              <Pause size={18} color="#F8FAFC" />
+            {isPlaying && !isPaused ? (
+              <Pause size={18} color="#FFFFFF" />
             ) : (
-              <Play size={18} color="#F8FAFC" fill="#F8FAFC" />
+              <Play size={18} color="#FFFFFF" fill="#FFFFFF" />
             )}
-            <Text style={boardStyles.playButtonText}>
-              {isPlaying ? 'Tạm dừng' : 'Phát bảng'}
+            <Text style={styles.playBtnText}>
+              {isPlaying && !isPaused
+                ? 'Tạm dừng phát'
+                : isPaused
+                ? 'Tiếp tục phát'
+                : 'Bắt đầu phát điện'}
             </Text>
           </TouchableOpacity>
-          {hasPlayed ? (
+
+          {hasPlayed && (
             <TouchableOpacity
-              accessibilityLabel="Đặt lại bảng phát"
+              accessibilityLabel="Đặt lại bài phát"
               activeOpacity={0.8}
               disabled={isLoading}
-              style={[boardStyles.iconButton, isLoading && { opacity: 0.5 }]}
-              onPress={() => {
-                if (!isLoading) {
-                  morseAudio.stop();
-                  setIsPlaying(false);
-                  setHasPlayed(false);
-                }
-              }}
+              style={[styles.iconButton, isLoading && { opacity: 0.5 }]}
+              onPress={handleResetAudio}
             >
-              <RotateCcw size={19} color="#132238" />
+              <RotateCcw size={18} color="#475569" />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
 
-        <View style={boardStyles.sectionRow}>
-          <Text style={boardStyles.sectionTitle}>Tập thu báo</Text>
-          <Text style={boardStyles.sectionHint}>ĐỐI CHIẾU SAU</Text>
+        {/* Khu vực Đối chiếu */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Đối chiếu kết quả thu</Text>
+          <Headphones size={16} color="#64748B" />
         </View>
 
-        <View style={boardStyles.comparePanel}>
-          <Text style={boardStyles.compareHelp}>
-            Ghi kết quả thu báo của bạn, sau đó đối chiếu khi sẵn sàng.
+        <View style={styles.compareCard}>
+          <Text style={styles.compareDesc}>
+            Sau khi đã ghi chép lại bức điện ra giấy, nhấn nút dưới đây để hệ
+            thống đọc âm từng chữ giúp bạn dò lỗi.
           </Text>
-          <View style={boardStyles.compareActions}>
+
+          {/* Hàng chọn tốc độ đọc: 1x, 1.25x, 1.5x, 2x */}
+          <View style={styles.speedSelectorRow}>
+            <Text style={styles.speedLabel}>Tốc độ đọc:</Text>
+            <View style={styles.speedButtonGroup}>
+              {COMPARE_SPEEDS.map(speed => (
+                <TouchableOpacity
+                  key={speed}
+                  disabled={isComparing}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.speedChip,
+                    compareSpeed === speed && styles.speedChipActive,
+                    isComparing && { opacity: 0.6 },
+                  ]}
+                  onPress={() => setCompareSpeed(speed)}
+                >
+                  <Text
+                    style={[
+                      styles.speedChipText,
+                      compareSpeed === speed && styles.speedChipTextActive,
+                    ]}
+                  >
+                    {speed}x
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Nút bấm đối chiếu */}
+          <View style={styles.compareBtnRow}>
             <TouchableOpacity
-              activeOpacity={0.8}
-              disabled={isPlaying}
-              style={[boardStyles.checkButton, isPlaying && { opacity: 0.5 }]}
+              activeOpacity={0.85}
+              style={[
+                styles.compareBtn,
+                isComparing && !isComparePaused && styles.compareBtnActive,
+                isComparePaused && { backgroundColor: '#F59E0B' }, // Nền màu cam khi tạm dừng
+              ]}
               onPress={compareBoard}
             >
-              {isComparing ? (
-                <ActivityIndicator size="small" color="#F8FAFC" />
+              {isComparing && !isComparePaused ? (
+                <Pause size={18} color="#FFFFFF" />
               ) : (
-                <Check size={18} color="#F8FAFC" />
+                <Check size={18} color="#FFFFFF" />
               )}
-              <Text style={boardStyles.checkButtonText} numberOfLines={1}>
-                {isComparing ? 'Đang đối chiếu...' : 'Đối chiếu'}
+              <Text style={styles.compareBtnText}>
+                {isComparing && !isComparePaused
+                  ? 'Tạm dừng đối chiếu'
+                  : isComparePaused
+                  ? 'Tiếp tục đối chiếu'
+                  : `Đọc đối chiếu (${compareSpeed}x)`}
               </Text>
             </TouchableOpacity>
-            {hasCompared ? (
+
+            {hasCompared && (
               <TouchableOpacity
                 accessibilityLabel="Đặt lại đối chiếu"
                 activeOpacity={0.8}
-                disabled={isComparing}
-                style={[boardStyles.iconButton, isComparing && { opacity: 0.5 }]}
+                style={styles.iconButton}
                 onPress={resetComparison}
               >
-                <RotateCcw size={19} color="#132238" />
+                <RotateCcw size={18} color="#475569" />
               </TouchableOpacity>
-            ) : null}
+            )}
+          </View>
+        </View>
+
+        {/* Tùy chỉnh thông số */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Cài đặt âm lượng & tốc độ</Text>
+        </View>
+
+        {characterType !== 'letter' && (
+          <View style={styles.toggleCard}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Chế độ phát số tắt</Text>
+              <Text style={styles.toggleDesc}>
+                Rút ngắn mã Morse cho các số 0 (-), 1 (.-), 2 (..-), 8 (-..), 9
+                (-.)
+              </Text>
+            </View>
+            <Switch
+              value={useShortNumbers}
+              onValueChange={handleToggleShortNumbers}
+              disabled={isPlaying}
+              trackColor={{ false: '#CBD5E1', true: '#818CF8' }}
+              thumbColor={useShortNumbers ? '#4F46E5' : '#F8FAFC'}
+            />
+          </View>
+        )}
+
+        {/* Slider Tần số */}
+        <View style={styles.sliderCard}>
+          <View style={styles.sliderHead}>
+            <Text style={styles.sliderLabel}>Tần số âm (Pitch)</Text>
+            <Text style={styles.sliderValue}>{frequency} Hz</Text>
+          </View>
+          <Slider
+            minimumValue={200}
+            maximumValue={1500}
+            step={10}
+            value={frequency}
+            minimumTrackTintColor="#4F46E5"
+            maximumTrackTintColor="#E2E8F0"
+            thumbTintColor="#4F46E5"
+            onValueChange={setFrequency}
+          />
+          <View style={styles.rangeLabels}>
+            <Text style={styles.rangeSub}>200 Hz (Trầm)</Text>
+            <Text style={styles.rangeSub}>1500 Hz (Bổng)</Text>
+          </View>
+        </View>
+
+        {/* Slider Tốc độ */}
+        <View style={styles.sliderCard}>
+          <View style={styles.sliderHead}>
+            <Text style={styles.sliderLabel}>Tốc độ phát</Text>
+            <Text style={styles.sliderValue}>
+              {cpm} chữ / phút ({wpm} WPM)
+            </Text>
+          </View>
+          <Slider
+            minimumValue={5}
+            maximumValue={60}
+            step={1}
+            value={wpm}
+            minimumTrackTintColor="#4F46E5"
+            maximumTrackTintColor="#E2E8F0"
+            thumbTintColor="#4F46E5"
+            onValueChange={setWpm}
+          />
+          <View style={styles.rangeLabels}>
+            <Text style={styles.rangeSub}>25 CPM (Chậm)</Text>
+            <Text style={styles.rangeSub}>300 CPM (Nhanh)</Text>
           </View>
         </View>
       </ScrollView>
