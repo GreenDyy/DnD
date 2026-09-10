@@ -4,6 +4,7 @@ import {
   View,
   StyleSheet,
   FlatList,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,9 +22,15 @@ import type { Message } from '../../components/Chat';
 import { colors } from '../../theme/colors';
 import { AI_NAME, REPLIES } from '../../constants';
 import { morseAudio } from '../../audio/MorseAudioEngine';
+import { images } from '../../assets';
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
+
+type PendingPlayback = {
+  character: string;
+  code?: string;
+};
 
 function ChatScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -34,13 +41,14 @@ function ChatScreen() {
     {
       id: '1',
       role: 'bot',
-      text: 'Xin chào! Mình là trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!',
+      text: 'Xin chào! Mình là Mori, trợ lý AI Morse. Hỏi mình bất cứ điều gì về mã Morse nhé!',
     },
   ]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<ParsedIntent | null>(null);
-  const [pendingPlayChar, setPendingPlayChar] = useState<string | null>(null);
+  const [pendingPlayChar, setPendingPlayChar] = useState<PendingPlayback | null>(null);
+  const [pendingNumber, setPendingNumber] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -73,6 +81,18 @@ function ChatScreen() {
     });
   }, [cancelGenerate]);
 
+  const playMorseSignal = useCallback(async (playback: NonNullable<Message['playback']>) => {
+    await morseAudio.start();
+    morseAudio.setFrequency(600);
+    morseAudio.setCpm(50);
+    morseAudio.setVolume(1);
+    if (playback.code) {
+      await morseAudio.playMorse(playback.code);
+    } else {
+      await morseAudio.playText(playback.character);
+    }
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isGenerating) return;
@@ -92,15 +112,16 @@ function ChatScreen() {
       // === CASE 0: Đang chờ xác nhận phát âm thanh Morse ===
       if (pendingPlayChar) {
         if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
-          await morseAudio.start();
-          morseAudio.setFrequency(600);
-          morseAudio.setWpm(8);
-          morseAudio.setVolume(1);
-          await morseAudio.playText(pendingPlayChar);
-          reply = `Đã phát tín hiệu ${pendingPlayChar}.`;
+          await playMorseSignal(pendingPlayChar);
+          reply = `Đã phát tín hiệu ${pendingPlayChar.character}.`;
           setPendingPlayChar(null);
 
-          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          const botMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'bot',
+            text: reply,
+            playback: pendingPlayChar,
+          };
           setTimeout(() => {
             setMessages(prev => [...prev.slice(0, -1), botMessage]);
           }, 400);
@@ -121,14 +142,6 @@ function ChatScreen() {
         };
 
         if (result.isComplete) {
-          // Đủ params → finalize
-          const finalIntent: ParsedIntent = {
-            ...updatedIntent,
-            response: (() => {
-              const { getIntentNavigation: _, ...rest } = updatedIntent;
-              return '';
-            })(),
-          };
           reply = generateIntentResponse(updatedIntent.type, result.params);
 
           const navTarget = getIntentNavigation(updatedIntent.type, result.params);
@@ -158,7 +171,40 @@ function ChatScreen() {
         return;
       }
 
-      // === CASE 2: Parse intent mới ===
+      // === CASE 2: Chờ chọn số thường hay số tắt ===
+      if (pendingNumber) {
+        const variant = /(?:số\s*)?(?:tắt|short)/i.test(text)
+          ? 'short'
+          : /(?:số\s*)?(?:thường|normal)/i.test(text)
+            ? 'normal'
+            : null;
+
+        if (!variant) {
+          reply = `Bạn muốn hỏi số ${pendingNumber} thường hay số ${pendingNumber} tắt?`;
+          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+          setMessages(prev => [...prev.slice(0, -1), botMessage]);
+          return;
+        }
+
+        const numberResult = knowledgeService.getNumberResponse(pendingNumber, variant);
+        setPendingNumber(null);
+
+        if (numberResult?.type === 'character') {
+          reply = `${numberResult.message}\n\nBạn có muốn tôi phát tín hiệu ${numberResult.answer} không?`;
+          setPendingPlayChar({
+            character: numberResult.answer,
+            code: numberResult.code,
+          });
+        } else {
+          reply = REPLIES.GENERATE_ERROR;
+        }
+
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        return;
+      }
+
+      // === CASE 3: Parse intent mới ===
       const intent = parseIntent(text);
       console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
 
@@ -201,15 +247,27 @@ function ChatScreen() {
         return;
       }
 
-      // === CASE 3: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
+      // === CASE 4: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
       const askResult = knowledgeService.ask(text);
+
+      if (!askResult) {
+        throw new Error('Không thể xử lý câu hỏi Morse');
+      }
+
+      if (askResult.type === 'ambiguous_number') {
+        setPendingNumber(askResult.answer);
+        reply = askResult.message;
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        return;
+      }
 
       if (askResult.type === 'character') {
         // Hỏi về ký tự → trả lời trực tiếp + hỏi phát âm
         const char = askResult.answer;
         reply = askResult.message;
         reply += `\n\nBạn có muốn tôi phát tín hiệu ${char} không?`;
-        setPendingPlayChar(char);
+        setPendingPlayChar({ character: char });
 
         const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
         setTimeout(() => {
@@ -262,7 +320,7 @@ function ChatScreen() {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, pendingIntent, generate, scrollToBottom, navigation]);
+  }, [input, isGenerating, isReady, pendingIntent, pendingNumber, pendingPlayChar, generate, playMorseSignal, scrollToBottom]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`
@@ -286,11 +344,19 @@ function ChatScreen() {
     }
   }, [navigation]);
 
+  const handleReplay = useCallback(async (playback: NonNullable<Message['playback']>) => {
+    try {
+      await playMorseSignal(playback);
+    } catch (err) {
+      console.warn('[MorseAudio] replay failed', err);
+    }
+  }, [playMorseSignal]);
+
   const keyExtractor = useCallback((item: Message) => item.id, []);
 
   const renderItem = useCallback(({ item }: { item: Message }) => (
-    <MessageItem item={item} onAction={handleAction} />
-  ), [handleAction]);
+    <MessageItem item={item} onAction={handleAction} onReplay={handleReplay} />
+  ), [handleAction, handleReplay]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -304,19 +370,24 @@ function ChatScreen() {
           onBack={() => navigation.goBack()}
         />
 
-        <FlatList
-          ref={flatListRef}
-          style={styles.messageList}
-          contentContainerStyle={styles.messageListContent}
-          data={messages}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={10}
-          onContentSizeChange={scrollToBottom}
-        />
+        <ImageBackground
+          source={images.background}
+          style={styles.messageBackground}
+          imageStyle={styles.messageBackgroundImage}>
+          <FlatList
+            ref={flatListRef}
+            style={styles.messageList}
+            contentContainerStyle={styles.messageListContent}
+            data={messages}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            onContentSizeChange={scrollToBottom}
+          />
+        </ImageBackground>
 
         <ChatInput
           input={input}
@@ -340,6 +411,12 @@ const styles = StyleSheet.create({
   },
   messageList: {
     flex: 1,
+  },
+  messageBackground: {
+    flex: 1,
+  },
+  messageBackgroundImage: {
+    resizeMode: 'stretch',
   },
   messageListContent: {
     padding: 16,

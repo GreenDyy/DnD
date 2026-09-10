@@ -13,14 +13,19 @@ export interface Message {
     screen: string;
     params?: Record<string, any>;
   };
+  playback?: {
+    character: string;
+    code?: string;
+  };
 }
 
 interface MessageItemProps {
   item: Message;
   onAction?: (action: Message['action']) => void;
+  onReplay?: (playback: NonNullable<Message['playback']>) => void;
 }
 
-const MessageItem = memo(({ item, onAction }: MessageItemProps) => {
+const MessageItem = memo(({ item, onAction, onReplay }: MessageItemProps) => {
   const isUser = item.role === 'user';
 
   return (
@@ -41,6 +46,14 @@ const MessageItem = memo(({ item, onAction }: MessageItemProps) => {
               onPress={() => onAction?.(item.action)}
               activeOpacity={0.7}>
               <Text style={styles.actionBtnText}>{item.action.label}</Text>
+            </TouchableOpacity>
+          )}
+          {item.playback && (
+            <TouchableOpacity
+              style={styles.replayBtn}
+              onPress={() => onReplay?.(item.playback!)}
+              activeOpacity={0.7}>
+              <Text style={styles.replayBtnText}>Phát lại</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -111,6 +124,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
+  },
+  replayBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  replayBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
 

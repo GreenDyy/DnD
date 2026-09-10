@@ -48,7 +48,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 const defaultBoardParams = {
   groupCount: 10,
   characterType: 'letter' as const,
-  wpm: 20,
+  cpm: 100,
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
@@ -93,8 +93,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const isComparePausedRef = useRef(false);
 
   const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
-  const cpm = wpm * 5;
+  const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
 
   // Cấu hình đầu điện
   const [hasPreamble, setHasPreamble] = useState(false);
@@ -226,7 +225,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     }
 
     morseAudio.setFrequency(frequency);
-    morseAudio.setWpm(wpm);
+    morseAudio.setCpm(cpm);
     morseAudio.setVolume(0.5);
     setIsPlaying(true);
     setIsPaused(false);
@@ -317,7 +316,9 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
         const baseGap = 180;
         const adjustedGap = Math.max(50, Math.round(baseGap / compareSpeed));
-        await new Promise(resolve => setTimeout(resolve, adjustedGap));
+        await new Promise<void>(resolve =>
+          setTimeout(resolve, adjustedGap),
+        );
       }
     } finally {
       if (compareSessionRef.current === sessionId) {
@@ -394,7 +395,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             <View style={styles.specItem}>
               <Sliders size={15} color="#4F46E5" />
               <Text style={styles.specLabel}>
-                {cpm} chữ/phút ({wpm} WPM)
+                {cpm} chữ / phút
               </Text>
             </View>
           </View>
@@ -710,23 +711,21 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         <View style={styles.sliderCard}>
           <View style={styles.sliderHead}>
             <Text style={styles.sliderLabel}>Tốc độ phát</Text>
-            <Text style={styles.sliderValue}>
-              {cpm} chữ / phút ({wpm} WPM)
-            </Text>
+            <Text style={styles.sliderValue}>{cpm} chữ / phút</Text>
           </View>
           <Slider
             minimumValue={5}
-            maximumValue={60}
+            maximumValue={500}
             step={1}
-            value={wpm}
+            value={cpm}
             minimumTrackTintColor="#4F46E5"
             maximumTrackTintColor="#E2E8F0"
             thumbTintColor="#4F46E5"
-            onValueChange={setWpm}
+            onValueChange={setCpm}
           />
           <View style={styles.rangeLabels}>
-            <Text style={styles.rangeSub}>25 CPM (Chậm)</Text>
-            <Text style={styles.rangeSub}>300 CPM (Nhanh)</Text>
+            <Text style={styles.rangeSub}>5 CPM (Chậm)</Text>
+            <Text style={styles.rangeSub}>500 CPM (Nhanh)</Text>
           </View>
         </View>
 

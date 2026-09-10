@@ -24,8 +24,8 @@ class MorseAudioEngine {
   // Âm lượng từ 0 đến 1
   private volume = 0.5;
 
-  // Tốc độ Morse: Words Per Minute
-  private wpm = 20;
+  // Tốc độ Morse: Characters Per Minute
+  private cpm = 100;
 
   // Đánh dấu engine đã được khởi tạo hay chưa
   private initialized = false;
@@ -144,15 +144,15 @@ class MorseAudioEngine {
   }
 
   // Cập nhật tốc độ Morse
-  setWpm(wpm: number) {
-    // Chỉ cho phép WPM từ 5 đến 100
-    this.wpm = Math.max(5, Math.min(100, wpm));
+  setCpm(cpm: number) {
+    // Chỉ cho phép CPM từ 5 đến 500
+    this.cpm = Math.max(5, Math.min(500, cpm));
   }
 
   // Tính thời lượng của 1 đơn vị Morse, đơn vị là giây.
-  // Chuẩn Morse: thời lượng 1 dot = 1.2 / WPM
+  // Chuẩn Morse: thời lượng 1 dot = 6 / CPM
   private getUnitDuration() {
-    return 1.2 / this.wpm;
+    return 6 / this.cpm;
   }
 
   // Phát một tiếng beep trong khoảng duration giây
@@ -223,6 +223,13 @@ class MorseAudioEngine {
         await this.tone(unit * 3);
         await this.silence(1);
       }
+    }
+  }
+
+  private releasePause() {
+    if (this.resumeResolver) {
+      this.resumeResolver();
+      this.resumeResolver = null;
     }
   }
 
@@ -312,6 +319,7 @@ class MorseAudioEngine {
     const token = ++this.playbackToken;
     this.stopRequested = false;
     this.isPaused = false;
+
     this.currentText = text;
     this.currentIndex = 0;
 
@@ -374,10 +382,7 @@ class MorseAudioEngine {
     }
 
     this.isPaused = false;
-
-    if (this.resumeResolver) {
-      this.resumeResolver();
-    }
+    this.releasePause();
   }
 
   restart() {
@@ -385,6 +390,7 @@ class MorseAudioEngine {
     this.isPaused = false;
     this.currentIndex = 0;
     this.playbackToken += 1;
+    this.releasePause();
 
     if (this.currentText) {
       this.playText(this.currentText);

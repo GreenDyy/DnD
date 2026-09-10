@@ -18,11 +18,11 @@ const specials = ['.', ',', '?', '/', '=', '+', '-', '@'];
 function DnDScreen() {
   const navigation = useNavigation();
   const route = useRoute<Props['route']>();
-  const speed = route.params?.speed ?? 10;
+  const cpm = route.params?.cpm ?? 50;
 
   const handlePress = async (char: string) => {
     await morseAudio.start();
-    morseAudio.setWpm(speed);
+    morseAudio.setCpm(cpm);
     morseAudio.setFrequency(600);
     morseAudio.setVolume(1);
     await morseAudio.playText(char);

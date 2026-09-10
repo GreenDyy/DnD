@@ -90,6 +90,17 @@ static bool tokenizePrompt(
     return actualTokens == tokenCount;
 }
 
+static size_t commonTokenPrefixLength(
+        const std::vector<llama_token>& left,
+        const std::vector<llama_token>& right) {
+    const size_t limit = std::min(left.size(), right.size());
+    size_t index = 0;
+    while (index < limit && left[index] == right[index]) {
+        ++index;
+    }
+    return index;
+}
+
 static bool saveContextState(llama_context* context) {
     const size_t stateSize = llama_state_get_size(context);
     cachedSystemState.resize(stateSize);
@@ -115,18 +126,27 @@ static bool warmupSystemPrompt(
     }
 
     const std::string formattedPrompt = formatChatPrompt(model, systemPrompt, "");
+    const std::string probePrompt = formatChatPrompt(model, systemPrompt, "__warmup_probe__");
     const llama_vocab* vocab = llama_model_get_vocab(model);
     std::vector<llama_token> tokens;
-    if (!tokenizePrompt(vocab, formattedPrompt, tokens)) {
+    std::vector<llama_token> probeTokens;
+    if (!tokenizePrompt(vocab, formattedPrompt, tokens) ||
+            !tokenizePrompt(vocab, probePrompt, probeTokens)) {
         LOCAL_AI_LOG("warmup: failed to tokenize system prompt");
+        return false;
+    }
+
+    const size_t prefixTokenCount = commonTokenPrefixLength(tokens, probeTokens);
+    if (prefixTokenCount == 0) {
+        LOCAL_AI_LOG("warmup: stable system prefix is empty");
         return false;
     }
 
     constexpr int32_t batchSize = 512;
     llama_memory_clear(llama_get_memory(context), true);
-    for (int32_t i = 0; i < static_cast<int32_t>(tokens.size()); i += batchSize) {
+    for (int32_t i = 0; i < static_cast<int32_t>(prefixTokenCount); i += batchSize) {
         const int32_t chunkSize = std::min(
-                batchSize, static_cast<int32_t>(tokens.size()) - i);
+                batchSize, static_cast<int32_t>(prefixTokenCount) - i);
         llama_batch batch = llama_batch_get_one(tokens.data() + i, chunkSize);
         if (llama_decode(context, batch) != 0) {
             LOCAL_AI_LOG("warmup: system prompt decode failed at offset=%d", i);
@@ -138,7 +158,7 @@ static bool warmupSystemPrompt(
     }
 
     cachedSystemPrompt = systemPrompt;
-    cachedPrefixTokens = std::move(tokens);
+    cachedPrefixTokens.assign(tokens.begin(), tokens.begin() + prefixTokenCount);
     if (!saveContextState(context)) {
         cachedSystemPrompt.clear();
         cachedPrefixTokens.clear();

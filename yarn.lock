@@ -6169,7 +6169,7 @@ react-native-vector-icons@^10.3.0, react-native-vector-icons@>7.0.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native-worklets@^0.11.4, "react-native-worklets@>= 0.6.0", "react-native-worklets@0.10.x - 0.11.x":
+react-native-worklets@^0.11.4:
   version "0.11.4"
   resolved "https://registry.npmjs.org/react-native-worklets/-/react-native-worklets-0.11.4.tgz"
   integrity sha512-yNiDDQAVvt1wacBhnrEMTBlQzZ8Y8Rg7Dbdxs/r595EXw4REsZGE5sY1Ug8SmlQUT+0L+fX7oY0SuCs0mjiA4w==
