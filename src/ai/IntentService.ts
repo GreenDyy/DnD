@@ -38,8 +38,6 @@ function generateFollowUpQuestion(intent: ParsedIntent): string {
   const missing = intent.missingParams;
   if (missing.length === 0) return '';
 
-  const p = intent.params;
-
   if (intent.type === 'practice_electro') {
     const parts: any = [];
     if (missing.includes('groupCount')) {
@@ -160,7 +158,7 @@ export function generateIntentResponse(type: IntentType, params: Record<string, 
       const charLabel = CHARACTER_OPTIONS.find(
         option => option.value === params.characterType,
       )?.label || params.characterType;
-      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} ký tự / 1 phút. Bắt đầu nhé!`;
+      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} CPM. Bắt đầu nhé!`;
     }
     case 'practice_listen':
       return 'Sau đây chúng ta qua màn hình nghe tín hiệu nhé';

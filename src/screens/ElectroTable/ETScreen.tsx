@@ -18,12 +18,9 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { type RootStackParamList } from '../../types/navigation';
 import {
-  CHARACTER_OPTIONS,
-  type CharacterType,
-} from '../../constants/characterTypes';
-import {
   MAX_GROUP_COUNT,
   MIN_GROUP_COUNT,
+  type CharacterType,
 } from '../../utils/morseGenerator';
 import { electroStyles } from './electroStyles';
 

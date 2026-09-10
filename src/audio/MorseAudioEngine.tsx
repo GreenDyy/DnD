@@ -44,7 +44,6 @@ class MorseAudioEngine {
   private currentIndex = 0;
   private resumeResolver: (() => void) | null = null;
   private playbackToken = 0;
-  private playbackPromise: Promise<void> | null = null;
 
   // Callback thông báo vị trí ký tự text đang phát
   private onProgressCallback: MorseProgressCallback | null = null;
@@ -320,13 +319,6 @@ class MorseAudioEngine {
     const token = ++this.playbackToken;
     this.stopRequested = false;
     this.isPaused = false;
-    if (this.currentText === text && this.isPaused) {
-      this.resume();
-      if (this.playbackPromise) {
-        await this.playbackPromise;
-      }
-      return;
-    }
 
     this.currentText = text;
     this.currentIndex = 0;
