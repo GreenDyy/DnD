@@ -54,6 +54,15 @@ const features = [
     bgColor: '#DCFCE7',
     screen: 'ElectroTableScreen',
   },
+  {
+    id: '5',
+    icon: Radio,
+    title: 'Bảng điện đã lưu',
+    desc: 'Xem lại các bảng điện đã lưu',
+    color: '#15803D',
+    bgColor: '#DCFCE7',
+    screen: 'SavedBoardsScreen',
+  },
 ];
 
 function HomeScreen() {

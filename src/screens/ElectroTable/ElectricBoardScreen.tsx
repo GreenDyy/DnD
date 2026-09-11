@@ -1,15 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { ArrowLeft, Headphones, Sliders, Volume2 } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Bookmark,
+  Headphones,
+  Sliders,
+  Volume2,
+} from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
@@ -27,7 +36,10 @@ import {
   getPlaybackPreamble,
   type PreambleData,
 } from '../../utils/preambleHelper';
-import { saveBoardToFile, type MorseBoardFile } from '../../services/fileBoardService';
+import {
+  saveBoardToFile,
+  type MorseBoardFile,
+} from '../../services/fileBoardService';
 
 // Import các sub-components dùng chung
 import { MorseTelegraphSheet } from '../../components/ElectricTable/MorseTelegraphSheetProps';
@@ -60,12 +72,16 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
   const params = route.params ?? defaultBoardParams;
   const { groupCount, characterType } = params;
+  const savedBoardParam = params.savedBoard as MorseBoardFile | undefined;
 
-  // 1. Khởi tạo mảng các nhóm ký tự
-  const board = useMemo(
-    () => generateMorseBoard({ groupCount, characterType }),
-    [groupCount, characterType],
-  );
+  // 1. Khởi tạo mảng các nhóm ký tự (Ưu tiên nạp từ file đã lưu nếu có)
+  const board = useMemo(() => {
+    if (savedBoardParam) {
+      return { groups: ['=', ...savedBoardParam.groups, '+'] };
+    }
+    return generateMorseBoard({ groupCount, characterType });
+  }, [savedBoardParam, groupCount, characterType]);
+
   const groups = useMemo(() => board.groups.slice(1, -1), [board.groups]);
 
   // 2. Quản lý trạng thái phát âm thanh Morse
@@ -89,16 +105,45 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const isComparePausedRef = useRef(false);
 
   // 4. Cấu hình tần số, tốc độ & số tắt
-  const [useShortNumbers, setUseShortNumbers] = useState(false);
+  const [useShortNumbers, setUseShortNumbers] = useState(
+    savedBoardParam?.config.useShortNumbers ?? false,
+  );
   const [frequency, setFrequency] = useState(600);
   const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
 
   // 5. Cấu hình đầu điện (Preamble)
-  const [hasPreamble, setHasPreamble] = useState(false);
-  const [nrValue, setNrValue] = useState('01/HL');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [hasPreamble, setHasPreamble] = useState(
+    savedBoardParam?.config.hasPreamble ?? false,
+  );
+  const [nrValue, setNrValue] = useState(
+    savedBoardParam?.config.nrValue ?? '01/HL',
+  );
+  const [selectedDate, setSelectedDate] = useState(
+    savedBoardParam?.config.dateISO
+      ? new Date(savedBoardParam.config.dateISO)
+      : new Date(),
+  );
+  const [selectedTime, setSelectedTime] = useState(
+    savedBoardParam?.config.timeISO
+      ? new Date(savedBoardParam.config.timeISO)
+      : new Date(),
+  );
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
+
+  // 6. Quản lý lưu file đề (.morse)
+  const [isSaved, setIsSaved] = useState(!!savedBoardParam);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveTitle, setSaveTitle] = useState(
+    () =>
+      savedBoardParam?.title ??
+      `Đề ${groups.length} nhóm - ${
+        characterType === 'letter'
+          ? 'Chữ cái'
+          : characterType === 'number'
+          ? 'Số'
+          : 'Hỗn hợp'
+      }`,
+  );
 
   // Tính toán chuỗi đầu điện
   const preambleData: PreambleData = useMemo(
@@ -149,7 +194,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     };
   }, []);
 
-  // Mở bộ chọn ngày và giờ (Android gọi imperative, iOS kích hoạt state)
+  // Mở bộ chọn ngày và giờ
   const showDatePicker = () => {
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
@@ -184,6 +229,36 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   const handleToggleShortNumbers = (value: boolean) => {
     setUseShortNumbers(value);
     morseAudio.setUseShortNumbers(value);
+  };
+
+  // Lưu bảng điện thành file .morse
+  const handleConfirmSave = async () => {
+    if (!saveTitle.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập tên đề bảng điện.');
+      return;
+    }
+
+    try {
+      await saveBoardToFile({
+        title: saveTitle.trim(),
+        config: {
+          groupCount: groups.length,
+          characterType,
+          useShortNumbers,
+          hasPreamble,
+          nrValue,
+          dateISO: selectedDate.toISOString(),
+          timeISO: selectedTime.toISOString(),
+        },
+        groups,
+      });
+
+      setIsSaved(true);
+      setShowSaveModal(false);
+      Alert.alert('Thành công', 'Đã lưu bảng điện thành file vào bộ nhớ.');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể lưu file bảng điện.');
+    }
   };
 
   // Logic phát / Tạm dừng / Tiếp tục âm thanh Morse
@@ -338,8 +413,24 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
         >
           <ArrowLeft size={20} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>BẢNG ĐIỆN LUYỆN TẬP</Text>
-        <View style={styles.navSpacer} />
+
+        <Text style={styles.navTitle} numberOfLines={1}>
+          {savedBoardParam ? savedBoardParam.title : 'BẢNG ĐIỆN LUYỆN TẬP'}
+        </Text>
+
+        {/* Nút Bookmark lưu file */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          disabled={isSaved}
+          style={[styles.iconButton, isSaved && { opacity: 0.6 }]}
+          onPress={() => setShowSaveModal(true)}
+        >
+          <Bookmark
+            size={20}
+            color={isSaved ? '#4F46E5' : '#0F172A'}
+            fill={isSaved ? '#4F46E5' : 'transparent'}
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -370,9 +461,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             <View style={styles.specDivider} />
             <View style={styles.specItem}>
               <Sliders size={15} color="#4F46E5" />
-              <Text style={styles.specLabel}>
-                {cpm} chữ/phút
-              </Text>
+              <Text style={styles.specLabel}>{cpm} chữ/phút</Text>
             </View>
           </View>
         </View>
@@ -447,7 +536,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           </View>
         )}
 
-        {/* Slider Tần số (Pitch) */}
         {/* 1. Slider Tần số âm (Pitch) */}
         <SliderCustom
           styles={styles}
@@ -463,7 +551,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           disabled={isPlaying}
         />
 
-        {/* Slider Tốc độ (CPM) */}
+        {/* 2. Slider Tốc độ (CPM) */}
         <SliderCustom
           styles={styles}
           label="Tốc độ phát"
@@ -510,6 +598,50 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           />
         )}
       </ScrollView>
+
+      {/* Modal Đặt tên và Lưu bảng điện vào File */}
+      <Modal
+        visible={showSaveModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSaveModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.saveModalCard}>
+            <Text style={styles.saveModalTitle}>Lưu Bảng Điện</Text>
+            <Text style={styles.saveModalDesc}>
+              Đặt tên gợi nhớ để lưu bảng điện thành file trong bộ nhớ máy:
+            </Text>
+
+            <TextInput
+              value={saveTitle}
+              onChangeText={setSaveTitle}
+              placeholder="Nhập tên đề..."
+              placeholderTextColor="#94A3B8"
+              style={styles.saveModalInput}
+              autoFocus={true}
+            />
+
+            <View style={styles.saveModalActionRow}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={styles.saveModalCancelBtn}
+                onPress={() => setShowSaveModal(false)}
+              >
+                <Text style={styles.saveModalCancelText}>Hủy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.saveModalSubmitBtn}
+                onPress={handleConfirmSave}
+              >
+                <Text style={styles.saveModalSubmitText}>Lưu file</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

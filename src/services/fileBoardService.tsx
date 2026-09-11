@@ -65,7 +65,10 @@ export async function loadAllBoardFiles(): Promise<MorseBoardFile[]> {
     const boardList: MorseBoardFile[] = [];
 
     for (const file of files) {
-      if (file.isFile() && (file.name.endsWith('.morse') || file.name.endsWith('.json'))) {
+      if (
+        file.isFile() &&
+        (file.name.endsWith('.morse') || file.name.endsWith('.json'))
+      ) {
         try {
           const content = await RNFS.readFile(file.path, 'utf8');
           const parsed: MorseBoardFile = JSON.parse(content);
@@ -103,28 +106,51 @@ export async function deleteBoardFile(id: string): Promise<void> {
 
 /**
  * 4. Chia sẻ file đề ra ngoài (Zalo, Drive, Gmail...)
+ * Sao chép sang thư mục Cache để thỏa mãn FileProvider của Android
  */
 export async function exportBoardFile(board: MorseBoardFile): Promise<void> {
-  const filePath = `${BOARDS_DIR}/board_${board.id}.morse`;
-  const exists = await RNFS.exists(filePath);
+  // Đặt tên file gợi nhớ (thay ký tự đặc biệt bằng dấu gạch dưới)
+  const safeTitle = board.title.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  // Dùng đuôi .json để các app như Zalo, Drive, Gmail nhận diện chuẩn MIME type
+  const fileName = `${safeTitle || 'de_morse'}_${board.id}.json`;
 
-  if (!exists) {
-    // Nếu chưa có file thì tạo tạm
-    await RNFS.writeFile(filePath, JSON.stringify(board, null, 2), 'utf8');
+  // 1. Đường dẫn file gốc và đường dẫn file tạm trong Cache
+  const originalPath = `${BOARDS_DIR}/board_${board.id}.morse`;
+  const cachePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+
+  // 2. Đảm bảo dữ liệu được ghi vào file trong thư mục Cache
+  const jsonContent = JSON.stringify(board, null, 2);
+  await RNFS.writeFile(cachePath, jsonContent, 'utf8');
+
+  // 3. Chia sẻ trực tiếp qua giao thức file:// từ Cache
+  try {
+    await Share.open({
+      title: `Chia sẻ bảng điện: ${board.title}`,
+      subject: `Bảng điện Morse: ${board.title}`,
+      filename: fileName,
+      url: `file://${cachePath}`,
+      type: 'application/json',
+      failOnCancel: false,
+    });
+  } finally {
+    // 4. Dọn dẹp file tạm trong cache sau khi mở hộp thoại chia sẻ
+    try {
+      const exists = await RNFS.exists(cachePath);
+      if (exists) {
+        await RNFS.unlink(cachePath);
+      }
+    } catch {
+      // Bỏ qua nếu chưa xóa được file cache ngay
+    }
   }
-
-  await Share.open({
-    title: `Chia sẻ bảng điện: ${board.title}`,
-    url: `file://${filePath}`,
-    type: 'application/json',
-    failOnCancel: false,
-  });
 }
 
 /**
  * 5. Import file từ bên ngoài vào thư mục của app
  */
-export async function importBoardFromFile(fileUri: string): Promise<MorseBoardFile> {
+export async function importBoardFromFile(
+  fileUri: string,
+): Promise<MorseBoardFile> {
   await ensureDirectoryExists();
 
   // Đọc nội dung file từ URI
@@ -156,7 +182,11 @@ export async function importBoardFromFile(fileUri: string): Promise<MorseBoardFi
 
   // Ghi vào thư mục cục bộ của ứng dụng
   const destPath = `${BOARDS_DIR}/board_${newId}.morse`;
-  await RNFS.writeFile(destPath, JSON.stringify(importedBoard, null, 2), 'utf8');
+  await RNFS.writeFile(
+    destPath,
+    JSON.stringify(importedBoard, null, 2),
+    'utf8',
+  );
 
   return importedBoard;
 }

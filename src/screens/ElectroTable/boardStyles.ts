@@ -560,5 +560,82 @@ export const createElectricBoardStyles = (
       letterSpacing: 0.5,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
+
+    // --- STYLES CHO MODAL LƯU FILE BẢNG ĐIỆN ---
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.55)', // Làm mờ nền phía sau
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    saveModalCard: {
+      width: '100%',
+      maxWidth: 360,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 18,
+      padding: 22,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.18,
+      shadowRadius: 14,
+      elevation: 8,
+    },
+    saveModalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: '#0F172A',
+      marginBottom: 6,
+      letterSpacing: 0.3,
+    },
+    saveModalDesc: {
+      fontSize: 13,
+      color: '#64748B',
+      lineHeight: 19,
+      marginBottom: 16,
+    },
+    saveModalInput: {
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1.5,
+      borderColor: '#CBD5E1',
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      height: 46,
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#0F172A',
+      marginBottom: 20,
+    },
+    saveModalActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    saveModalCancelBtn: {
+      flex: 1,
+      height: 42,
+      borderRadius: 10,
+      backgroundColor: '#F1F5F9',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    saveModalCancelText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#64748B',
+    },
+    saveModalSubmitBtn: {
+      flex: 1,
+      height: 42,
+      borderRadius: 10,
+      backgroundColor: '#4F46E5',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    saveModalSubmitText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
   });
 };

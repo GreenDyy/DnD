@@ -9,6 +9,7 @@ import ElectroTableScreen from '../screens/ElectroTable/ETScreen';
 import ElectricBoardScreen from '../screens/ElectroTable/ElectricBoardScreen';
 import DrawerNavigator from './DrawerNavigator';
 import PlaygroundNavigator from './PlaygroundNavigator';
+import SavedBoardsScreen from '../screens/savedBoards/SavedBoardsScreen';
 
 const Stack = createNativeStackNavigator<AppRootStackParamList>();
 
@@ -25,6 +26,7 @@ function AppNavigator() {
       />
       <Stack.Screen name="PlaygroundScreen" component={PlaygroundNavigator} />
       <Stack.Screen name="ChatScreen" component={DrawerNavigator} />
+      <Stack.Screen name="SavedBoardsScreen" component={SavedBoardsScreen} />
     </Stack.Navigator>
   );
 }
