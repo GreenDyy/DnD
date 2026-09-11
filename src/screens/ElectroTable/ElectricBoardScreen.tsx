@@ -9,7 +9,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { ArrowLeft, Headphones, Sliders, Volume2 } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,8 +27,9 @@ import {
   getPlaybackPreamble,
   type PreambleData,
 } from '../../utils/preambleHelper';
+import { saveBoardToFile, type MorseBoardFile } from '../../services/fileBoardService';
 
-// Import các sub-components dùng chung vừa tạo
+// Import các sub-components dùng chung
 import { MorseTelegraphSheet } from '../../components/ElectricTable/MorseTelegraphSheetProps';
 import { PreambleConfigCard } from '../../components/ElectricTable/PreambleConfigCard';
 import {
