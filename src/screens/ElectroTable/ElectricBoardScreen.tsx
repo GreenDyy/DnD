@@ -44,7 +44,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 const defaultBoardParams = {
   groupCount: 10,
   characterType: 'letter' as const,
-  wpm: 20,
+  cpm: 100,
 };
 
 const ElectricBoardScreen = ({ route, navigation }: Props) => {
@@ -91,8 +91,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
   // 4. Cấu hình tần số, tốc độ & số tắt
   const [useShortNumbers, setUseShortNumbers] = useState(false);
   const [frequency, setFrequency] = useState(600);
-  const [wpm, setWpm] = useState(params.wpm ?? defaultBoardParams.wpm);
-  const cpm = wpm * 5;
+  const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
 
   // 5. Cấu hình đầu điện (Preamble)
   const [hasPreamble, setHasPreamble] = useState(false);
@@ -204,7 +203,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     }
 
     morseAudio.setFrequency(frequency);
-    morseAudio.setWpm(wpm);
+    morseAudio.setCpm(cpm);
     morseAudio.setVolume(0.5);
     setIsPlaying(true);
     setIsPaused(false);
@@ -372,7 +371,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
             <View style={styles.specItem}>
               <Sliders size={15} color="#4F46E5" />
               <Text style={styles.specLabel}>
-                {cpm} chữ/phút ({wpm} WPM)
+                {cpm} chữ/phút
               </Text>
             </View>
           </View>
@@ -464,18 +463,18 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           disabled={isPlaying}
         />
 
-        {/* Slider Tốc độ (WPM/CPM) */}
+        {/* Slider Tốc độ (CPM) */}
         <SliderCustom
           styles={styles}
           label="Tốc độ phát"
-          displayValue={`${cpm} chữ / phút (${wpm} WPM)`}
-          value={wpm}
-          minimumValue={5}
-          maximumValue={60}
+          displayValue={`${cpm} chữ / phút`}
+          value={cpm}
+          minimumValue={25}
+          maximumValue={300}
           step={1}
           minLabel="25 CPM (Chậm)"
           maxLabel="300 CPM (Nhanh)"
-          onValueChange={setWpm}
+          onValueChange={setCpm}
           disabled={isPlaying}
         />
 
