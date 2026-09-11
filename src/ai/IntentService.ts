@@ -89,12 +89,14 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
       }
 
       // Extract characterType
-      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
-        params.characterType = 'shortNumber' as CharacterType;
+      if (/(?:chữ\s*cái|letter)/i.test(text)) {
+        params.characterType = 'letter'
+      } else if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
+        params.characterType = 'shortNumber'
       } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(text)) {
-        params.characterType = 'number' as CharacterType;
+        params.characterType = 'number'
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(text)) {
-        params.characterType = 'mixed' as CharacterType;
+        params.characterType = 'mixed'
       }
 
       // Extract cpm
@@ -222,13 +224,13 @@ export function collectMissingParams(
     // Extract characterType
     if (intent.missingParams.includes('characterType')) {
       if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(normalizedText)) {
-        updatedParams.characterType = 'shortNumber' as CharacterType;
+        updatedParams.characterType = 'shortNumber';
       } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(normalizedText)) {
-        updatedParams.characterType = 'number' as CharacterType;
+        updatedParams.characterType = 'number';
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(normalizedText)) {
-        updatedParams.characterType = 'mixed' as CharacterType;
+        updatedParams.characterType = 'mixed';
       } else if (/(?:chữ\s*cái|letter)/i.test(normalizedText)) {
-        updatedParams.characterType = 'letter' as CharacterType;
+        updatedParams.characterType = 'letter';
       }
     }
 
