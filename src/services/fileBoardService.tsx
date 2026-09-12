@@ -1,6 +1,6 @@
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
-import { type CharacterType } from '../utils/morseGenerator';
+import { type CharacterType } from '../types';
 
 // Thư mục lưu trữ riêng biệt của app
 const BOARDS_DIR = `${RNFS.DocumentDirectoryPath}/morse_boards`;

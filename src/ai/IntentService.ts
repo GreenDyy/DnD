@@ -5,10 +5,7 @@ export type IntentType =
   | 'ask_morse'
   | 'unknown';
 
-import {
-  CHARACTER_OPTIONS,
-  type CharacterType,
-} from '../constants/characterTypes';
+import { CHARACTER_OPTIONS } from '../constants/characterTypes';
 
 export interface ParsedIntent {
   type: IntentType;
@@ -160,7 +157,7 @@ export function generateIntentResponse(type: IntentType, params: Record<string, 
       const charLabel = CHARACTER_OPTIONS.find(
         option => option.value === params.characterType,
       )?.label || params.characterType;
-      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} CPM. Bắt đầu nhé!`;
+      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} chữ / phút. Bắt đầu nhé!`;
     }
     case 'practice_listen':
       return 'Sau đây chúng ta qua màn hình nghe tín hiệu nhé';

@@ -5,6 +5,8 @@ export type ApiError = {
 
 export type Nullable<T> = T | null;
 
+export type CharacterType = 'letter' | 'number' | 'shortNumber' | 'mixed';
+
 export type {
   RootStackParamList,
   PlaygroundStackParamList,

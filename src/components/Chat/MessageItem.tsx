@@ -36,7 +36,9 @@ const MessageItem = memo(({ item, onAction, onReplay }: MessageItemProps) => {
           {item.text === '...' ? (
             <TypingIndicator />
           ) : (
-            <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
+            <Text
+              selectable
+              style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
               {item.text}
             </Text>
           )}

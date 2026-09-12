@@ -2,8 +2,8 @@ import { Button, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import {
   generateMorseBoard,
-  type CharacterType,
 } from '../../../utils/morseGenerator';
+import { type CharacterType } from '../../../types';
 import { morseAudio } from '../../../audio/MorseAudioEngine';
 import { Slider } from 'react-native-elements';
 import { styles } from './styles';

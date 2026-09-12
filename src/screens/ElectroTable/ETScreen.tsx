@@ -20,8 +20,8 @@ import { type RootStackParamList } from '../../types/navigation';
 import {
   MAX_GROUP_COUNT,
   MIN_GROUP_COUNT,
-  type CharacterType,
 } from '../../utils/morseGenerator';
+import type { CharacterType } from '../../types';
 import { electroStyles } from './electroStyles';
 
 interface CharacterOption {

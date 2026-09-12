@@ -1,4 +1,4 @@
-import type { CharacterType } from '../utils/morseGenerator';
+import type { CharacterType } from '.';
 
 export type RootStackParamList = {
   SplashScreen: undefined;
