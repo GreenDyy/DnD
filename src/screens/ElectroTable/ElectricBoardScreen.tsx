@@ -50,6 +50,8 @@ import {
 } from '../../components/ElectricTable/CompareControlCard';
 import { AudioPlaybackControls } from '../../components/ElectricTable/AudioPlaybackControls';
 import { SliderCustom } from '../../components/Common/SliderCustom';
+import { ScreenHeader } from '../../components/ElectricTable/ElectricTableHeader';
+import { Colors } from '../../constants/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 
@@ -191,6 +193,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     return () => {
       morseAudio.setOnProgress(null);
       morseAudio.stop();
+      resetComparison();
     };
   }, []);
 
@@ -279,7 +282,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     morseAudio.setFrequency(frequency);
     morseAudio.setCpm(cpm);
-    morseAudio.setVolume(0.5);
+    morseAudio.setVolume(1.0);
     setIsPlaying(true);
     setIsPaused(false);
     setHasPlayed(true);
@@ -287,6 +290,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     try {
       await morseAudio.playText(fullPlaybackText);
+      console.log(fullPlaybackText);
     } finally {
       if (!morseAudio.getIsPaused()) {
         setIsPlaying(false);
@@ -404,34 +408,25 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       {/* Top Header Navigation */}
-      <View style={styles.navBar}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          disabled={isLoading}
-          style={[styles.backButton, isLoading && { opacity: 0.5 }]}
-          onPress={() => !isLoading && navigation.goBack()}
-        >
-          <ArrowLeft size={20} color="#0F172A" />
-        </TouchableOpacity>
-
-        <Text style={styles.navTitle} numberOfLines={1}>
-          {savedBoardParam ? savedBoardParam.title : 'BẢNG ĐIỆN LUYỆN TẬP'}
-        </Text>
-
-        {/* Nút Bookmark lưu file */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          disabled={isSaved}
-          style={[styles.iconButton, isSaved && { opacity: 0.6 }]}
-          onPress={() => setShowSaveModal(true)}
-        >
-          <Bookmark
-            size={20}
-            color={isSaved ? '#4F46E5' : '#0F172A'}
-            fill={isSaved ? '#4F46E5' : 'transparent'}
-          />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title={savedBoardParam ? savedBoardParam.title : 'BẢNG ĐIỆN LUYỆN TẬP'}
+        disabledBack={isLoading}
+        onBack={() => !isLoading && navigation.goBack()}
+        rightAction={
+          <TouchableOpacity
+            activeOpacity={0.7}
+            disabled={isSaved}
+            style={[styles.backButton, isSaved && { opacity: 0.6 }]}
+            onPress={() => setShowSaveModal(true)}
+          >
+            <Bookmark
+              size={18}
+              color={isSaved ? Colors.primary[600] : Colors.neutral.textPrimary}
+              fill={isSaved ? Colors.primary[600] : 'transparent'}
+            />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -547,7 +542,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           step={10}
           minLabel="200 Hz (Trầm)"
           maxLabel="1500 Hz (Bổng)"
-          onValueChange={setFrequency}
+          onValueChange={val => {
+            setFrequency(val);
+            morseAudio.setFrequency(val);
+          }}
           disabled={isPlaying}
         />
 
@@ -562,7 +560,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           step={1}
           minLabel="25 CPM (Chậm)"
           maxLabel="300 CPM (Nhanh)"
-          onValueChange={setCpm}
+          onValueChange={val => {
+            setCpm(val);
+            morseAudio.setCpm(val);
+          }}
           disabled={isPlaying}
         />
 

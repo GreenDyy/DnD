@@ -1,9 +1,10 @@
 import { Platform, StyleSheet } from 'react-native';
+import { Colors } from '../../constants/colors';
 
 export const electroStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.neutral.background,
   },
   keyboardAvoid: {
     flex: 1,
@@ -17,30 +18,13 @@ export const electroStyles = StyleSheet.create({
   },
 
   /* Top Navigation */
-  navBar: {
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: Colors.neutral.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  navBarTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  navBarPlaceholder: {
-    width: 40,
   },
 
   /* Header Section */
@@ -50,7 +34,7 @@ export const electroStyles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: Colors.primary[50],
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -59,32 +43,32 @@ export const electroStyles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: Colors.primary[700],
     letterSpacing: 0.5,
   },
   heroTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F172A',
+    color: Colors.neutral.textPrimary,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: Colors.neutral.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
 
   /* Setup Card */
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.neutral.card,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: Colors.neutral.border,
     ...Platform.select({
       ios: {
-        shadowColor: '#0F172A',
+        shadowColor: Colors.neutral.textPrimary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.04,
         shadowRadius: 10,
@@ -110,8 +94,8 @@ export const electroStyles = StyleSheet.create({
   },
   fieldBadge: {
     fontSize: 12,
-    color: '#64748B',
-    backgroundColor: '#F1F5F9',
+    color: Colors.neutral.textSecondary,
+    backgroundColor: Colors.neutral.surfaceSubtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -120,22 +104,22 @@ export const electroStyles = StyleSheet.create({
   /* Text Input */
   input: {
     height: 52,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.neutral.background,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: Colors.neutral.border,
     paddingHorizontal: 16,
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
+    color: Colors.neutral.textPrimary,
   },
   inputFocused: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#FFFFFF',
+    borderColor: Colors.primary[600],
+    backgroundColor: Colors.neutral.card,
   },
   inputDisabled: {
-    backgroundColor: '#E2E8F0',
-    color: '#94A3B8',
+    backgroundColor: Colors.neutral.border,
+    color: Colors.neutral.textMuted,
   },
 
   /* Preset Chips */
@@ -148,26 +132,26 @@ export const electroStyles = StyleSheet.create({
     flex: 1,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Colors.neutral.surfaceSubtle,
     alignItems: 'center',
   },
   presetChipActive: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: Colors.primary[50],
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: Colors.primary[200],
   },
   presetChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: Colors.neutral.textSecondary,
   },
   presetChipTextActive: {
-    color: '#4F46E5',
+    color: Colors.primary[700],
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Colors.neutral.divider,
     marginVertical: 18,
   },
 
@@ -186,12 +170,12 @@ export const electroStyles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: Colors.neutral.border,
+    backgroundColor: Colors.neutral.background,
   },
   optionCardActive: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    borderColor: Colors.primary[600],
+    backgroundColor: Colors.primary[50],
   },
   optionCardDisabled: {
     opacity: 0.6,
@@ -201,7 +185,7 @@ export const electroStyles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: Colors.neutral.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -210,7 +194,7 @@ export const electroStyles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#4F46E5',
+    backgroundColor: Colors.primary[600],
   },
   optionTextWrapper: {
     flex: 1,
@@ -221,11 +205,11 @@ export const electroStyles = StyleSheet.create({
     color: '#1E293B',
   },
   optionTitleActive: {
-    color: '#4F46E5',
+    color: Colors.primary[700],
   },
   optionDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: Colors.neutral.textSecondary,
     marginTop: 1,
   },
 
@@ -234,19 +218,19 @@ export const electroStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 12 : 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Colors.neutral.background,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: Colors.neutral.divider,
   },
   submitButton: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#4F46E5',
+    backgroundColor: Colors.primary[600],
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#4F46E5',
+        shadowColor: Colors.primary[600],
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 8,
@@ -257,12 +241,12 @@ export const electroStyles = StyleSheet.create({
     }),
   },
   submitButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: Colors.neutral.textMuted,
     elevation: 0,
     shadowOpacity: 0,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: Colors.neutral.white,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,

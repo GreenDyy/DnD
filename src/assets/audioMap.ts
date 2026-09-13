@@ -42,12 +42,12 @@ export const characterAudioNameMap: Record<string, string> = {
   '9': 'n9',
 };
 
-// Tạo một bộ nhớ đệm để lưu các đối tượng Sound đã được tải, tránh tải lại nhiều lần cùng một âm thanh.
 const soundCache: Record<string, Sound> = {};
 const soundLoadCache: Record<string, Promise<Sound> | undefined> = {};
 let activeSound: Sound | null = null;
+let activeResolve: (() => void) | null = null;
+let stopTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Lấy tên tệp âm thanh cho ký tự đã cho, nếu không có thì trả về undefined
 export function getCharacterAudioName(char: string): string | undefined {
   return characterAudioNameMap[char.toUpperCase()];
 }
@@ -67,7 +67,7 @@ function loadSound(source: string): Promise<Sound> {
     }
   }
 
-  const candidate = candidates.find(item => !!item) ?? source;
+  const candidate = candidates.find(item => !item) ?? source;
   const cacheKey = `native:${candidate}`;
 
   const loadPromise = new Promise<Sound>((resolve, reject) => {
@@ -100,33 +100,53 @@ function loadSound(source: string): Promise<Sound> {
   return loadPromise;
 }
 
-let activeResolve: (() => void) | null = null;
-let stopTimer: ReturnType<typeof setTimeout> | null = null;
+// Ngắt âm êm ái: hạ volume -> stop -> reset con trỏ
+function safelyStopSound(sound: Sound, callback?: () => void) {
+  try {
+    sound.setVolume(0);
+    sound.stop(() => {
+      sound.setCurrentTime(0);
+      sound.setVolume(1.0); // Trả lại volume bình thường cho lần phát sau
+      callback?.();
+    });
+  } catch {
+    callback?.();
+  }
+}
 
-// Phát âm thanh cho ký tự đã cho, trả về một Promise để xử lý kết quả
 export async function playCharacterAudio(
   char: string,
   speed: number = 1,
 ): Promise<void> {
+  // Dừng âm trước đó nếu còn đang sót lại
+  stopCharacterAudio();
+
   const normalized = char.toUpperCase();
   const nativeName =
     getCharacterAudioName(normalized) ?? getCharacterAudioName('A') ?? 'a';
 
   const sound = await loadSound(nativeName);
   activeSound = sound;
-  sound.setSpeed(speed);
 
-  // Chỉ lấy 0.7s (700ms) đầu. Khi tăng tốc (speed > 1), thời gian sẽ co lại tương ứng
-  const PLAY_DURATION_MS = Math.round(700 / speed);
+  sound.setSpeed(speed);
+  sound.setVolume(1.0);
+
+  // Tăng thời lượng lên 800ms để âm thanh phát trọn vẹn hơn
+  const PLAY_DURATION_MS = Math.round(800 / speed);
 
   await new Promise<void>(resolve => {
     activeResolve = resolve;
+    let isFinished = false;
 
-    const cleanup = () => {
+    const finish = () => {
+      if (isFinished) return;
+      isFinished = true;
+
       if (stopTimer) {
         clearTimeout(stopTimer);
         stopTimer = null;
       }
+
       activeSound = null;
       if (activeResolve) {
         activeResolve();
@@ -134,19 +154,19 @@ export async function playCharacterAudio(
       }
     };
 
-    sound.stop(() => {
-      sound.play(_success => {
-        // Kích hoạt nếu file kết thúc trước 0.5s
-        cleanup();
-      });
+    sound.setCurrentTime(0);
 
-      // Tự ngắt sau 0.5s đầu để bỏ đoạn im lặng phía sau
-      stopTimer = setTimeout(() => {
-        sound.stop(() => {
-          cleanup();
-        });
-      }, PLAY_DURATION_MS);
+    sound.play(() => {
+      // Kích hoạt khi file tự phát hết tự nhiên
+      finish();
     });
+
+    // Ngắt êm sau thời gian quy định
+    stopTimer = setTimeout(() => {
+      if (!isFinished) {
+        safelyStopSound(sound, finish);
+      }
+    }, PLAY_DURATION_MS);
   });
 }
 
@@ -155,9 +175,11 @@ export function stopCharacterAudio(): void {
     clearTimeout(stopTimer);
     stopTimer = null;
   }
+
   if (activeSound) {
-    activeSound.stop(() => {
-      activeSound = null;
+    const soundToStop = activeSound;
+    activeSound = null;
+    safelyStopSound(soundToStop, () => {
       if (activeResolve) {
         activeResolve();
         activeResolve = null;

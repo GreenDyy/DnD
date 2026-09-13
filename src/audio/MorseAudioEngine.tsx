@@ -1,231 +1,173 @@
 import { AudioContext, OscillatorNode, GainNode } from 'react-native-audio-api';
-
-// Hàm chuyển văn bản bình thường thành chuỗi Morse.
-// Ví dụ: "SOS" → "... --- ..."
 import { textToMorse } from '../constants/morseMap';
 
+// Định nghĩa kiểu dữ liệu callback thông báo tiến trình phát ký tự ra giao diện
 export type MorseProgressCallback = (textIndex: number, char: string) => void;
 
-// Class chịu trách nhiệm tạo và điều khiển âm thanh Morse
+// Lớp điều khiển phát tín hiệu âm thanh Morse chuyên dụng
 class MorseAudioEngine {
-  // AudioContext: môi trường/engine quản lý âm thanh
+  // Đối tượng quản lý ngữ cảnh âm thanh của hệ thống (AudioContext)
   private context: AudioContext | null = null;
 
-  // OscillatorNode: node tạo sóng âm thanh, ở đây dùng để tạo tiếng beep
+  // Node tạo sóng âm dạng hình sin để phát tiếng bip (Oscillator)
   private oscillator: OscillatorNode | null = null;
 
-  // GainNode: node điều khiển âm lượng.
-  // Ta bật/tắt tiếng beep bằng cách thay đổi gain giữa volume và 0
+  // Node điều chỉnh âm lượng (GainNode): bật tiếng hoặc ngắt tiếng
   private gain: GainNode | null = null;
 
-  // Tần số tiếng beep, đơn vị Hz
+  // Tần số âm thanh tiếng bip (mặc định 600 Hz)
   private frequency = 600;
 
-  // Âm lượng từ 0 đến 1
+  // Biên độ âm lượng từ 0.0 đến 1.0 (mặc định 0.5)
   private volume = 0.5;
 
-  // Tốc độ Morse: Characters Per Minute
+  // Tốc độ phát mã Morse tính theo ký tự/phút (CPM - Characters Per Minute)
   private cpm = 100;
 
-  // Đánh dấu engine đã được khởi tạo hay chưa
+  // Cờ đánh dấu engine âm thanh đã khởi tạo thành công hay chưa
   private initialized = false;
 
-  // Đánh dấu hiện có đang phát tiếng beep hay không
+  // Cờ trạng thái âm thanh tiếng bip đang kêu (true) hay tắt (false)
   private playing = false;
 
-  // Đánh dấu có đang sử dụng dạng số tắt hay không
+  // Cờ bật/tắt chế độ mã hóa số tắt (Short Numbers: 1=.-, 0=-, ...)
   private useShortNumbers = false;
 
-  // Trạng thái tạm dừng / tiếp tục
+  // Cờ đánh dấu luồng phát đang ở trạng thái tạm dừng (Pause)
   private isPaused = false;
+
+  // Cờ ngắt luồng cưỡng bức khi người dùng bấm Stop/Reset
   private stopRequested = false;
+
+  // Lưu trữ chuỗi văn bản đang phát để hỗ trợ resume tiếp tục
   private currentText = '';
-  private currentMorse = '';
+
+  // Chỉ số ký tự đang phát dở trong chuỗi văn bản
   private currentIndex = 0;
+
+  // Hàm kích hoạt tiếp tục luồng Promise khi nhấn Resume
   private resumeResolver: (() => void) | null = null;
+
+  // Token phiên phát để vô hiệu hóa các luồng phát cũ khi bấm phát mới liên tục
   private playbackToken = 0;
 
-  // Callback thông báo vị trí ký tự text đang phát
+  // Hàm callback gửi chỉ số ký tự và mặt chữ đang phát ra ngoài UI để highlight
   private onProgressCallback: MorseProgressCallback | null = null;
 
-  /**
-   * Đăng ký callback theo dõi tiến trình phát
-   * @param callback (textIndex: index ký tự trong chuỗi text gốc, char: ký tự tương ứng)
-   */
+  // Đăng ký hàm nhận tiến trình phát ký tự từ bên ngoài UI
   setOnProgress(callback: MorseProgressCallback | null) {
     this.onProgressCallback = callback;
   }
 
-  // Thêm setter để UI bật/tắt chế độ số tắt
+  // Bật hoặc tắt chế độ phát số tắt (Short Numbers)
   setUseShortNumbers(enabled: boolean) {
     this.useShortNumbers = enabled;
   }
 
+  // Lấy trạng thái hiện tại của chế độ số tắt
   getUseShortNumbers() {
     return this.useShortNumbers;
   }
 
-  // Tiện ích kiểm tra trạng thái bên ngoài
+  // Kiểm tra xem luồng phát có đang bị tạm dừng hay không
   getIsPaused() {
     return this.isPaused;
   }
 
+  // Kiểm tra xem hiện có đang phát tiếng bip hay không
   getIsPlaying() {
     return this.playing;
   }
 
-  // Khởi tạo audio engine nếu chưa khởi tạo
+  // Khởi tạo AudioContext, Oscillator và GainNode nếu chưa tạo
   private ensureInitialized() {
-    // Nếu đã tạo context, oscillator và gain rồi thì không tạo lại
-    if (this.initialized) {
-      return;
-    }
+    if (this.initialized) return;
 
-    // Tạo audio context
     this.context = new AudioContext();
-
-    // Tạo bộ phát sóng âm và node điều chỉnh âm lượng
     this.oscillator = this.context.createOscillator();
     this.gain = this.context.createGain();
 
-    // Chọn dạng sóng sine để tiếng beep êm hơn
+    // Dùng sóng sin để âm thanh phát ra êm tai, không bị chát
     this.oscillator.type = 'sine';
-
-    // Đặt tần số ban đầu cho oscillator
     this.oscillator.frequency.value = this.frequency;
+    this.gain.gain.value = 0; // Khởi đầu ngắt âm
 
-    // Ban đầu để âm lượng bằng 0 để chưa phát ra tiếng
-    this.gain.gain.value = 0;
-
-    // Nối luồng âm thanh:
-    // oscillator tạo âm → gain điều chỉnh volume → loa/tai nghe
+    // Kết nối mạch âm thanh: Nguồn phát -> Điều khiển âm lượng -> Loa thiết bị
     this.oscillator.connect(this.gain);
     this.gain.connect(this.context.destination);
-
-    // Bắt đầu oscillator ngay từ đầu.
-    // Âm có phát ra hay không phụ thuộc vào gain.gain.value.
     this.oscillator.start();
 
-    // Đánh dấu đã khởi tạo thành công
     this.initialized = true;
   }
 
-  // Bảo đảm audio context đã sẵn sàng để phát âm
+  // Đảm bảo phần cứng âm thanh sẵn sàng hoạt động (đánh thức nếu bị sleep)
   async start() {
-    // Khởi tạo nếu cần
     this.ensureInitialized();
-
-    // Nếu context đang bị tạm dừng thì tiếp tục nó
     if (this.context?.state === 'suspended') {
       await this.context.resume();
     }
   }
 
-  // Cập nhật tần số tiếng beep
+  // Đặt lại tần số âm thanh (Pitch) theo Hz
   setFrequency(frequency: number) {
-    // Lưu giá trị để dùng cho các lần khởi tạo sau
     this.frequency = frequency;
-
-    // Nếu oscillator đang tồn tại thì cập nhật ngay lập tức
     if (this.oscillator) {
       this.oscillator.frequency.value = frequency;
     }
   }
 
-  // Cập nhật âm lượng
+  // Đặt lại âm lượng phát (giới hạn an toàn từ 0 đến 1)
   setVolume(volume: number) {
-    // Giới hạn âm lượng luôn nằm trong khoảng 0 đến 1
     this.volume = Math.max(0, Math.min(1, volume));
-
-    // Nếu hiện không phát Morse thì giữ gain bằng 0 để không có tiếng
     if (this.gain && !this.playing) {
       this.gain.gain.value = 0;
     }
   }
 
-  // Cập nhật tốc độ Morse
+  // Cài đặt tốc độ phát theo chuẩn CPM (chữ/phút)
   setCpm(cpm: number) {
-    // Chỉ cho phép CPM từ 5 đến 500
     this.cpm = Math.max(5, Math.min(500, cpm));
   }
 
-  // Tính thời lượng của 1 đơn vị Morse, đơn vị là giây.
-  // Chuẩn Morse: thời lượng 1 dot = 6 / CPM
-  private getUnitDuration() {
-    return 6 / this.cpm;
+  // Tính thời lượng chuẩn của 1 đơn vị dot (ms) theo tiêu chuẩn quốc tế PARIS
+  private getUnitDurationMs(): number {
+    return 6000 / this.cpm;
   }
 
-  // Phát một tiếng beep trong khoảng duration giây
-  private async tone(duration: number) {
-    // Không có gain node thì không thể điều chỉnh/phát âm
-    if (!this.gain) {
-      return;
-    }
+  // Bật tiếng bip trong khoảng thời gian durationSec (giây) rồi ngắt
+  private async tone(durationSec: number) {
+    if (!this.gain) return;
 
-    // Đánh dấu đang phát
     this.playing = true;
-
-    // Bật âm lượng lên mức đã chọn
     this.gain.gain.value = this.volume;
-
-    // Chờ đủ thời lượng của dot hoặc dash
-    await this.sleep(duration * 1000);
-
-    // Tắt âm lượng để kết thúc tiếng beep
+    await this.sleep(durationSec * 1000);
     this.gain.gain.value = 0;
-
-    // Đánh dấu đã ngừng phát tone
     this.playing = false;
   }
 
-  // Im lặng trong một số đơn vị Morse
+  // Tạo khoảng lặng ngắt tiếng kéo dài theo số đơn vị nhịp (units)
   private async silence(units: number) {
-    // units = số đơn vị thời gian cần chờ
-    await this.sleep(this.getUnitDuration() * units * 1000);
+    await this.sleep(this.getUnitDurationMs() * units);
   }
 
-  // Hàm hỗ trợ chờ bất đồng bộ theo milliseconds
+  // Hàm trì hoãn bất đồng bộ theo mili-giây
   private sleep(ms: number) {
     return new Promise<void>(resolve => {
       setTimeout(resolve, ms);
     });
   }
 
+  // Treo luồng chờ đợi đến khi hàm resume() được gọi
   private async waitUntilResumed() {
-    if (!this.isPaused) {
-      return;
-    }
+    if (!this.isPaused) return;
 
     await new Promise<void>(resolve => {
       this.resumeResolver = resolve;
     });
-
     this.resumeResolver = null;
   }
 
-  // Phát một ký tự Morse đơn lẻ (ví dụ ".-")
-  private async playSingleMorseChar(morseChar: string, token: number) {
-    const unit = this.getUnitDuration();
-
-    for (let i = 0; i < morseChar.length; i++) {
-      if (this.playbackToken !== token || this.stopRequested) return;
-
-      while (this.isPaused) {
-        if (this.playbackToken !== token || this.stopRequested) return;
-        await this.waitUntilResumed();
-      }
-
-      const symbol = morseChar[i];
-      if (symbol === '.') {
-        await this.tone(unit);
-        await this.silence(1);
-      } else if (symbol === '-') {
-        await this.tone(unit * 3);
-        await this.silence(1);
-      }
-    }
-  }
-
+  // Giải phóng cờ chờ để tiếp tục chạy tiếp luồng phát
   private releasePause() {
     if (this.resumeResolver) {
       this.resumeResolver();
@@ -233,84 +175,38 @@ class MorseAudioEngine {
     }
   }
 
-  // Phát một chuỗi Morse từ vị trí bắt đầu.
-  // Ví dụ: "... --- ..." hoặc ".- / -..."
-  private async playMorseFromIndex(morse: string, startIndex: number) {
-    const token = ++this.playbackToken;
-    this.stopRequested = false;
-    this.currentMorse = morse;
-    this.currentIndex = startIndex;
+  // Phát một mẫu mã Morse của 1 ký tự cụ thể (Ví dụ: ".-" của chữ A)
+  private async playSingleMorseChar(morseChar: string, token: number) {
+    const unitMs = this.getUnitDurationMs();
 
-    await this.start();
+    for (let i = 0; i < morseChar.length; i++) {
+      // Dừng ngay nếu phiên phát đã bị hủy hoặc bấm Stop
+      if (this.playbackToken !== token || this.stopRequested) return;
 
-    const unit = this.getUnitDuration();
-
-    for (let i = startIndex; i < morse.length; i++) {
-      if (this.playbackToken !== token) {
-        return;
-      }
-
+      // Nếu đang Pause thì dừng chờ tại đây
       while (this.isPaused) {
-        if (this.playbackToken !== token) {
-          return;
-        }
+        if (this.playbackToken !== token || this.stopRequested) return;
         await this.waitUntilResumed();
       }
 
-      if (this.stopRequested || this.playbackToken !== token) {
-        return;
-      }
-
-      const symbol = morse[i];
-
+      const symbol = morseChar[i];
       if (symbol === '.') {
-        await this.tone(unit);
-        if (this.stopRequested || this.playbackToken !== token) {
-          return;
-        }
+        await this.tone(unitMs / 1000); // Dot dài 1 đơn vị
+      } else if (symbol === '-') {
+        await this.tone((unitMs * 3) / 1000); // Dash dài 3 đơn vị
+      }
+
+      // Khoảng lặng giữa các dot/dash trong cùng một chữ cái dài đúng 1 đơn vị
+      // Không ngắt nghỉ ở dot/dash cuối cùng của ký tự
+      if (i < morseChar.length - 1) {
         await this.silence(1);
       }
-
-      if (symbol === '-') {
-        await this.tone(unit * 3);
-        if (this.stopRequested || this.playbackToken !== token) {
-          return;
-        }
-        await this.silence(1);
-      }
-
-      if (symbol === ' ') {
-        await this.silence(2);
-      }
-
-      if (symbol === '/') {
-        await this.silence(6);
-      }
-
-      this.currentIndex = i + 1;
     }
-
-    this.playing = false;
-    this.isPaused = false;
-    this.currentIndex = morse.length;
   }
 
-  async playMorse(morse: string) {
-    // Nếu đang tạm dừng chính chuỗi Morse này -> tiếp tục phát
-    if (this.isPaused && this.currentMorse === morse) {
-      this.resume();
-      return;
-    }
-    await this.playMorseFromIndex(morse, 0);
-  }
-
-  // Chuyển text sang Morse rồi phát
-  /**
-   * Phát toàn bộ text và bắn callback onProgress theo từng ký tự.
-   * Tự động tiếp tục từ ký tự dở nếu đang tạm dừng.
-   */
+  // Phát toàn bộ chuỗi văn bản text với nhịp phách chuẩn và gửi callback tiến trình
   async playText(text: string) {
-    // Nếu đang tạm dừng cùng một text -> chỉ cần resume lại luồng đợi
+    // Nếu đang tạm dừng đúng chuỗi văn bản này thì chỉ cần Resume lại
     if (this.isPaused && this.currentText === text) {
       this.resume();
       return;
@@ -330,74 +226,67 @@ class MorseAudioEngine {
 
       this.currentIndex = i;
 
-      // Nếu có lệnh pause, vòng lặp dừng chờ tại đây
+      // Treo luồng nếu người dùng bấm Pause giữa chừng
       while (this.isPaused) {
         if (this.playbackToken !== token || this.stopRequested) return;
         await this.waitUntilResumed();
       }
 
       const char = text[i];
-
-      // Gửi event vị trí ký tự đang phát ra ngoài
+      // Bắn vị trí ký tự ra giao diện để highlight màu
       this.onProgressCallback?.(i, char);
 
+      // Xử lý khoảng cách giữa các nhóm (Dấu cách: tổng nghỉ chuẩn là 7 đơn vị)
       if (char === ' ') {
-        // Nghỉ giữa các nhóm/từ (7 đơn vị thời gian)
-        await this.silence(7);
+        // Đã có 3 đơn vị nghỉ từ chữ cái trước đó, chỉ cần nghỉ thêm 4 đơn vị là tròn 7
+        await this.silence(4);
         continue;
       }
 
-      // Đổi ký tự sang Morse (ví dụ 'A' -> '.-')
+      // Chuyển ký tự sang chuỗi mã Morse theo bảng quy ước
       const mode = this.useShortNumbers ? 'shortNumber' : 'standard';
       const morsePattern = textToMorse(char, mode);
+
       if (morsePattern) {
         await this.playSingleMorseChar(morsePattern, token);
-        // Nghỉ giữa các ký tự trong cùng một từ/nhóm (3 đơn vị thời gian)
-        await this.silence(3);
+
+        // Khoảng nghỉ giữa các ký tự trong cùng một nhóm là đúng 3 đơn vị
+        const nextChar = i < text.length - 1 ? text[i + 1] : null;
+        if (nextChar) {
+          await this.silence(3);
+        }
       }
     }
 
+    // Hoàn thành bài phát: reset lại các trạng thái
     if (this.playbackToken === token) {
       this.playing = false;
       this.isPaused = false;
       this.currentIndex = 0;
-      this.onProgressCallback?.(-1, ''); // Hoàn thành -> reset
+      this.onProgressCallback?.(-1, ''); // Xóa highlight trên giao diện
     }
   }
 
+  // Tạm dừng bài phát hiện tại, lưu lại vị trí ký tự đang phát dở
   pause() {
     this.isPaused = true;
     this.stopRequested = false;
     this.playing = false;
 
+    // Ngắt tiếng ngay lập tức
     if (this.gain) {
       this.gain.gain.value = 0;
     }
   }
 
+  // Tiếp tục phát tiếp từ vị trí đã tạm dừng trước đó
   resume() {
-    // Hỗ trợ tiếp tục nếu có chuỗi text HOẶC chuỗi morse đang phát dở
-    if (!this.currentText && !this.currentMorse) {
-      return;
-    }
-
+    if (!this.currentText) return;
     this.isPaused = false;
     this.releasePause();
   }
 
-  restart() {
-    this.stopRequested = false;
-    this.isPaused = false;
-    this.currentIndex = 0;
-    this.playbackToken += 1;
-    this.releasePause();
-
-    if (this.currentText) {
-      this.playText(this.currentText);
-    }
-  }
-
-  // Dừng tiếng beep hiện tại
+  // Dừng hẳn bài phát hiện tại và hủy bỏ toàn bộ luồng đang chờ
   stop() {
     this.stopRequested = true;
     this.isPaused = false;
@@ -408,40 +297,29 @@ class MorseAudioEngine {
     if (this.gain) {
       this.gain.gain.value = 0;
     }
-    if (this.resumeResolver) {
-      this.resumeResolver();
-    }
+    this.releasePause();
     this.onProgressCallback?.(-1, '');
   }
 
-  // Giải phóng audio resources khi không còn dùng engine
+  // Giải phóng hoàn toàn phần cứng âm thanh native khi màn hình bị unmount
   async dispose() {
-    // Dừng âm thanh trước
     this.stop();
 
-    // Dừng oscillator.
-    // Một oscillator đã stop thì không nên start lại.
     if (this.oscillator) {
       this.oscillator.stop();
       this.oscillator = null;
     }
 
-    // Đóng audio context và giải phóng tài nguyên native
     if (this.context) {
       await this.context.close();
       this.context = null;
     }
 
-    // Xóa tham chiếu gain node
     this.gain = null;
-
-    // Cho phép khởi tạo lại engine ở lần dùng tiếp theo
     this.initialized = false;
-
-    // Xóa callback onProgress để tránh giữ tham chiếu không cần thiết
     this.onProgressCallback = null;
   }
 }
 
-// Tạo một instance dùng chung cho toàn ứng dụng
+// Xuất đối tượng dùng chung duy nhất (Singleton) cho toàn bộ ứng dụng
 export const morseAudio = new MorseAudioEngine();

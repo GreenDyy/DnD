@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -13,8 +12,9 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Bookmark } from 'lucide-react-native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { type RootStackParamList } from '../../types/navigation';
 import {
@@ -23,6 +23,8 @@ import {
   type CharacterType,
 } from '../../utils/morseGenerator';
 import { electroStyles } from './electroStyles';
+import { ScreenHeader } from '../../components/ElectricTable/ElectricTableHeader';
+import { Colors } from '../../constants/colors';
 
 interface CharacterOption {
   value: CharacterType;
@@ -79,25 +81,28 @@ export default function ElectroTableScreen() {
   };
 
   return (
-    <SafeAreaView style={electroStyles.safeArea}>
+    <SafeAreaView style={electroStyles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={electroStyles.keyboardAvoid}
       >
         {/* Top App Bar */}
-        <View style={electroStyles.navBar}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            disabled={isLoading}
-            onPress={() => navigation.canGoBack() && navigation.goBack()}
-            style={electroStyles.backButton}
-          >
-            <ArrowLeft size={20} color="#132238" />
-          </TouchableOpacity>
-          <Text style={electroStyles.navBarTitle}>Thiết lập bài luyện</Text>
-          <View style={electroStyles.navBarPlaceholder} />
-        </View>
+        <ScreenHeader
+          title="Thiết lập bài luyện"
+          disabledBack={isLoading}
+          onBack={() => navigation.canGoBack() && navigation.goBack()}
+          rightAction={
+            <TouchableOpacity
+              activeOpacity={0.7}
+              disabled={isLoading}
+              style={electroStyles.backButton}
+              onPress={() => navigation.navigate('SavedBoardsScreen')}
+            >
+              <Bookmark size={18} color={Colors.primary[600]} />
+            </TouchableOpacity>
+          }
+        />
 
         <ScrollView
           style={electroStyles.container}
@@ -214,7 +219,6 @@ export default function ElectroTableScreen() {
             </View>
           </View>
         </ScrollView>
-
         {/* Floating Bottom Action */}
         <View style={electroStyles.bottomBar}>
           <TouchableOpacity
