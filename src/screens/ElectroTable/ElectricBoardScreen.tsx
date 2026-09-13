@@ -191,6 +191,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     return () => {
       morseAudio.setOnProgress(null);
       morseAudio.stop();
+      resetComparison();
     };
   }, []);
 
@@ -279,7 +280,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     morseAudio.setFrequency(frequency);
     morseAudio.setCpm(cpm);
-    morseAudio.setVolume(0.5);
+    morseAudio.setVolume(1.0);
     setIsPlaying(true);
     setIsPaused(false);
     setHasPlayed(true);
@@ -287,6 +288,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     try {
       await morseAudio.playText(fullPlaybackText);
+      console.log(fullPlaybackText);
     } finally {
       if (!morseAudio.getIsPaused()) {
         setIsPlaying(false);
@@ -547,7 +549,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           step={10}
           minLabel="200 Hz (Trầm)"
           maxLabel="1500 Hz (Bổng)"
-          onValueChange={setFrequency}
+          onValueChange={val => {
+            setFrequency(val);
+            morseAudio.setFrequency(val);
+          }}
           disabled={isPlaying}
         />
 
@@ -562,7 +567,10 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           step={1}
           minLabel="25 CPM (Chậm)"
           maxLabel="300 CPM (Nhanh)"
-          onValueChange={setCpm}
+          onValueChange={val => {
+            setCpm(val);
+            morseAudio.setCpm(val);
+          }}
           disabled={isPlaying}
         />
 
