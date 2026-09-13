@@ -276,6 +276,13 @@ function ChatScreen() {
         return;
       }
 
+      if (askResult.type === 'rule' || askResult.type === 'morse_decode') {
+        reply = askResult.message;
+        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
+        setMessages(prev => [...prev.slice(0, -1), botMessage]);
+        return;
+      }
+
       // Các loại query khác → qua LLM
       if (isReady) {
         if (!knowledgeService.isRelevant(text)) {
@@ -292,7 +299,7 @@ function ChatScreen() {
             console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
           }
 
-          const maxTokensForGen = 256;
+          const maxTokensForGen = 128;
           const budget = knowledgeService.checkTokenBudget(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
 
           console.log('💰 [Token] Budget:', budget);

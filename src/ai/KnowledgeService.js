@@ -84,13 +84,9 @@ class KnowledgeService {
       contextParts.push(`${rule.title}: ${rule.content}`);
     }
 
-    // 3. Nếu không tìm thấy gì, trả về ngắn gọn
+    // 3. Nếu không tìm thấy dữ liệu cụ thể, không chèn danh sách Morse mẫu.
     if (contextParts.length === 0) {
-      const sample = knowledgeBase.morseBasic.entries
-        .slice(0, 8)
-        .map(e => `${e.character}=${e.code}`)
-        .join(', ');
-      contextParts.push(`Morse: ${sample}`);
+      return '';
     }
 
     return contextParts.join('\n');
@@ -149,16 +145,15 @@ class KnowledgeService {
    */
   isRelevant(question) {
     const text = question.trim().toLowerCase();
-    // Các từ khóa liên quan đến Morse
     const morseKeywords = [
       'morse', 'mã morse', 'tích', 'tà', 'sos', 'dot', 'dash',
-      'ký tự', 'chữ', 'mã', 'tín hiệu', 'phát', 'thu',
+      'ký tự', 'mã', 'tín hiệu', 'phát', 'thu',
       'báo vụ', 'telegraph', 'điện',
-      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
     ];
-    return morseKeywords.some(kw => text.includes(kw));
+    const hasMorseKeyword = morseKeywords.some(keyword => text.includes(keyword));
+    const hasCharacterQuestion = /(?:chữ|ký tự|mã|morse|tín hiệu)\s*[a-z0-9]\b/i.test(text);
+
+    return hasMorseKeyword || hasCharacterQuestion;
   }
 
   /**
@@ -213,7 +208,16 @@ class KnowledgeService {
       }
     }
 
-    // 3. Hỏi về tích
+    // 3. Báo vụ
+    if (text.includes('báo vụ')) {
+      return {
+        type: 'rule',
+        message:
+          'Báo vụ là việc truyền, nhận và ghi nhận thông tin bằng tín hiệu Morse, thường được sử dụng trong liên lạc vô tuyến.'
+      };
+    }
+
+    // 4. Hỏi về tích
     if (text.includes('tích')) {
       const rule = knowledgeBase.morseRules.rules.find(
         item => item.title.toLowerCase() === 'tích'
@@ -224,7 +228,7 @@ class KnowledgeService {
       };
     }
 
-    // 4. Hỏi về tà
+    // 5. Hỏi về tà
     if (text.includes('tà')) {
       const rule = knowledgeBase.morseRules.rules.find(
         item => item.title.toLowerCase() === 'tà'
@@ -235,7 +239,7 @@ class KnowledgeService {
       };
     }
 
-    // 5. SOS
+    // 6. SOS
     if (text.includes('sos')) {
       return {
         type: 'morse_decode',
@@ -244,7 +248,7 @@ class KnowledgeService {
       };
     }
 
-    // 6. Không tìm thấy
+    // 7. Không tìm thấy
     return {
       type: 'unknown',
       message:
