@@ -1,4 +1,5 @@
 import { Platform, StyleSheet } from 'react-native';
+import { Colors } from '../../constants/colors';
 
 export const createElectricBoardStyles = (
   screenWidth: number,
@@ -21,7 +22,7 @@ export const createElectricBoardStyles = (
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: Colors.neutral.background,
     },
     scrollContent: {
       paddingHorizontal: paddingH,
@@ -36,18 +37,18 @@ export const createElectricBoardStyles = (
       justifyContent: 'space-between',
       paddingHorizontal: paddingH,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
-      backgroundColor: '#F8FAFC',
+      borderBottomColor: Colors.neutral.divider,
+      backgroundColor: Colors.neutral.background,
     },
     backButton: {
       width: 38,
       height: 38,
       borderRadius: 10,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -63,7 +64,7 @@ export const createElectricBoardStyles = (
     navTitle: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       letterSpacing: 0.4,
     },
     navSpacer: {
@@ -72,12 +73,12 @@ export const createElectricBoardStyles = (
 
     /* Hero Banner */
     heroCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 16,
       padding: 16,
       marginTop: 14,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
     },
     heroHeader: {
       flexDirection: 'row',
@@ -86,7 +87,7 @@ export const createElectricBoardStyles = (
       marginBottom: 8,
     },
     heroBadge: {
-      backgroundColor: '#EEF2FF',
+      backgroundColor: Colors.primary[50],
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 6,
@@ -94,10 +95,10 @@ export const createElectricBoardStyles = (
     heroBadgeText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#4F46E5',
+      color: Colors.primary[700],
     },
     statsPill: {
-      backgroundColor: '#F1F5F9',
+      backgroundColor: Colors.neutral.surfaceSubtle,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 6,
@@ -105,16 +106,16 @@ export const createElectricBoardStyles = (
     statsPillText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#475569',
+      color: Colors.neutral.textSecondary,
     },
     heroTitle: {
       fontSize: isSmallDevice ? 20 : 22,
       fontWeight: '800',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
     },
     heroSubtitle: {
       fontSize: 13,
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       marginTop: 4,
       lineHeight: 18,
     },
@@ -124,7 +125,7 @@ export const createElectricBoardStyles = (
       marginTop: 12,
       paddingTop: 10,
       borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
+      borderTopColor: Colors.neutral.divider,
     },
     specItem: {
       flexDirection: 'row',
@@ -139,21 +140,21 @@ export const createElectricBoardStyles = (
     specDivider: {
       width: 1,
       height: 12,
-      backgroundColor: '#CBD5E1',
+      backgroundColor: Colors.neutral.borderStrong,
       marginHorizontal: 12,
     },
 
     /* BẢNG ĐIỆN TÍN (MAIN TELEGRAPH SHEET) */
     boardCard: {
       marginTop: 16,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 16,
       borderWidth: 1.5,
-      borderColor: '#CBD5E1',
+      borderColor: Colors.neutral.borderStrong,
       padding: cardPadding,
       ...Platform.select({
         ios: {
-          shadowColor: '#0F172A',
+          shadowColor: Colors.neutral.textPrimary,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.05,
           shadowRadius: 6,
@@ -174,18 +175,18 @@ export const createElectricBoardStyles = (
       width: 4,
       height: 4,
       borderRadius: 2,
-      backgroundColor: '#94A3B8',
+      backgroundColor: Colors.neutral.textMuted,
     },
     sheetTopTitle: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       letterSpacing: 1,
     },
     // Ký tự đang phát tiếng beep
     charHighlighted: {
-      color: '#FFFFFF',
-      backgroundColor: '#4F46E5', // Nền tím đậm nổi bật
+      color: Colors.morse.charHighlightedText,
+      backgroundColor: Colors.morse.charHighlightedBg, // Xanh lá đậm nổi bật
       borderRadius: 4,
       fontWeight: '900',
       overflow: 'hidden',
@@ -193,16 +194,16 @@ export const createElectricBoardStyles = (
 
     // Highlight khi phát dấu '=' hoặc '+'
     markerBadgeActive: {
-      backgroundColor: '#4F46E5',
-      borderColor: '#4338CA',
+      backgroundColor: Colors.primary[600],
+      borderColor: Colors.primary[700],
     },
     markerTextActive: {
-      color: '#FFFFFF',
+      color: Colors.neutral.white,
       fontWeight: '900',
     },
     markerBadge: {
       alignSelf: 'flex-start',
-      backgroundColor: '#FEF3C7',
+      backgroundColor: Colors.accent.yellowLight,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 4,
@@ -213,8 +214,8 @@ export const createElectricBoardStyles = (
     markerBadgeEnd: {
       marginTop: 10,
       marginBottom: 0,
-      backgroundColor: '#E0F2FE',
-      borderColor: '#BAE6FD',
+      backgroundColor: Colors.primary[50],
+      borderColor: Colors.primary[200],
     },
     markerText: {
       fontSize: 11,
@@ -237,9 +238,9 @@ export const createElectricBoardStyles = (
     groupCell: {
       width: cellWidth,
       height: 38,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: Colors.neutral.background,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
       borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
@@ -247,7 +248,7 @@ export const createElectricBoardStyles = (
     groupText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       letterSpacing: 1.5,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
@@ -259,7 +260,7 @@ export const createElectricBoardStyles = (
     rowCounterText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#94A3B8',
+      color: Colors.neutral.textMuted,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
 
@@ -274,17 +275,17 @@ export const createElectricBoardStyles = (
       flex: 1,
       height: 50,
       borderRadius: 12,
-      backgroundColor: '#4F46E5',
+      backgroundColor: Colors.primary[600],
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
     },
     playBtnActive: {
-      backgroundColor: '#059669',
+      backgroundColor: Colors.primary[700],
     },
     playBtnText: {
-      color: '#FFFFFF',
+      color: Colors.neutral.white,
       fontSize: 15,
       fontWeight: '700',
     },
@@ -292,9 +293,9 @@ export const createElectricBoardStyles = (
       width: 50,
       height: 50,
       borderRadius: 12,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -317,15 +318,15 @@ export const createElectricBoardStyles = (
 
     /* Đối chiếu */
     compareCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 14,
       padding: 14,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
     },
     compareDesc: {
       fontSize: 13,
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       lineHeight: 18,
       marginBottom: 12,
     },
@@ -338,17 +339,17 @@ export const createElectricBoardStyles = (
       flex: 1,
       height: 46,
       borderRadius: 10,
-      backgroundColor: '#0F172A',
+      backgroundColor: Colors.neutral.textPrimary,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
     },
     compareBtnActive: {
-      backgroundColor: '#D97706',
+      backgroundColor: Colors.accent.amberDark,
     },
     compareBtnText: {
-      color: '#FFFFFF',
+      color: Colors.neutral.white,
       fontSize: 14,
       fontWeight: '700',
     },
@@ -359,12 +360,12 @@ export const createElectricBoardStyles = (
       marginBottom: 14,
       paddingBottom: 12,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: Colors.neutral.divider,
     },
     speedLabel: {
       fontSize: 13,
       fontWeight: '600',
-      color: '#475569',
+      color: Colors.neutral.textSecondary,
     },
     speedButtonGroup: {
       flexDirection: 'row',
@@ -374,31 +375,31 @@ export const createElectricBoardStyles = (
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 8,
-      backgroundColor: '#F1F5F9',
+      backgroundColor: Colors.neutral.surfaceSubtle,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
     },
     speedChipActive: {
-      backgroundColor: '#EEF2FF',
-      borderColor: '#818CF8',
+      backgroundColor: Colors.primary[50],
+      borderColor: Colors.primary[200],
     },
     speedChipText: {
       fontSize: 12,
       fontWeight: '700',
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
     },
     speedChipTextActive: {
-      color: '#4F46E5',
+      color: Colors.primary[700],
     },
 
     /* Sliders */
     sliderCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 14,
       padding: 14,
       marginBottom: 10,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
     },
     sliderHead: {
       flexDirection: 'row',
@@ -414,7 +415,7 @@ export const createElectricBoardStyles = (
     sliderValue: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#4F46E5',
+      color: Colors.primary[700],
     },
     rangeLabels: {
       flexDirection: 'row',
@@ -423,15 +424,15 @@ export const createElectricBoardStyles = (
     },
     rangeSub: {
       fontSize: 11,
-      color: '#94A3B8',
+      color: Colors.neutral.textMuted,
     },
     toggleCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 14,
       padding: 14,
       marginBottom: 10,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -443,19 +444,19 @@ export const createElectricBoardStyles = (
     toggleTitle: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       marginBottom: 2,
     },
     toggleDesc: {
       fontSize: 12,
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       lineHeight: 16,
     },
     preambleConfigCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
       marginBottom: 10,
       overflow: 'hidden',
     },
@@ -463,7 +464,7 @@ export const createElectricBoardStyles = (
       paddingHorizontal: 14,
       paddingBottom: 14,
       borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
+      borderTopColor: Colors.neutral.divider,
       gap: 10,
     },
     preambleInputRow: {
@@ -480,14 +481,14 @@ export const createElectricBoardStyles = (
     preambleTextInput: {
       width: 120,
       height: 38,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: Colors.neutral.background,
       borderWidth: 1,
-      borderColor: '#CBD5E1',
+      borderColor: Colors.neutral.borderStrong,
       borderRadius: 8,
       paddingHorizontal: 10,
       fontSize: 14,
       fontWeight: '700',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       textAlign: 'center',
     },
     dateTimeActionRow: {
@@ -497,10 +498,10 @@ export const createElectricBoardStyles = (
     pickerTriggerBtn: {
       flex: 1,
       height: 38,
-      backgroundColor: '#EEF2FF',
+      backgroundColor: Colors.primary[50],
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: '#C7D2FE',
+      borderColor: Colors.primary[200],
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -509,19 +510,19 @@ export const createElectricBoardStyles = (
     pickerTriggerText: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#4F46E5',
+      color: Colors.primary[700],
     },
     previewBox: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: Colors.neutral.background,
       padding: 8,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: Colors.neutral.border,
     },
     previewLabel: {
       fontSize: 10,
       fontWeight: '700',
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       marginBottom: 2,
     },
     previewText: {
@@ -535,28 +536,28 @@ export const createElectricBoardStyles = (
     preambleBanner: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F1F5F9',
+      backgroundColor: Colors.neutral.surfaceSubtle,
       paddingHorizontal: 10,
       paddingVertical: 7,
       borderRadius: 8,
       marginBottom: 10,
       borderLeftWidth: 3,
-      borderLeftColor: '#94A3B8',
+      borderLeftColor: Colors.neutral.textMuted,
       gap: 8,
     },
     preambleBannerActive: {
-      backgroundColor: '#EEF2FF',
-      borderLeftColor: '#4F46E5',
+      backgroundColor: Colors.primary[50],
+      borderLeftColor: Colors.primary[600],
     },
     preambleTag: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#4F46E5',
+      color: Colors.primary[700],
     },
     preambleContentText: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       letterSpacing: 0.5,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
@@ -564,7 +565,7 @@ export const createElectricBoardStyles = (
     // --- STYLES CHO MODAL LƯU FILE BẢNG ĐIỆN ---
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(15, 23, 42, 0.55)', // Làm mờ nền phía sau
+      backgroundColor: 'rgba(15, 23, 42, 0.55)',
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 24,
@@ -572,10 +573,10 @@ export const createElectricBoardStyles = (
     saveModalCard: {
       width: '100%',
       maxWidth: 360,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: Colors.neutral.white,
       borderRadius: 18,
       padding: 22,
-      shadowColor: '#0F172A',
+      shadowColor: Colors.neutral.textPrimary,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.18,
       shadowRadius: 14,
@@ -584,26 +585,26 @@ export const createElectricBoardStyles = (
     saveModalTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       marginBottom: 6,
       letterSpacing: 0.3,
     },
     saveModalDesc: {
       fontSize: 13,
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
       lineHeight: 19,
       marginBottom: 16,
     },
     saveModalInput: {
-      backgroundColor: '#F8FAFC',
+      backgroundColor: Colors.neutral.background,
       borderWidth: 1.5,
-      borderColor: '#CBD5E1',
+      borderColor: Colors.neutral.borderStrong,
       borderRadius: 10,
       paddingHorizontal: 14,
       height: 46,
       fontSize: 14,
       fontWeight: '600',
-      color: '#0F172A',
+      color: Colors.neutral.textPrimary,
       marginBottom: 20,
     },
     saveModalActionRow: {
@@ -615,27 +616,27 @@ export const createElectricBoardStyles = (
       flex: 1,
       height: 42,
       borderRadius: 10,
-      backgroundColor: '#F1F5F9',
+      backgroundColor: Colors.neutral.surfaceSubtle,
       alignItems: 'center',
       justifyContent: 'center',
     },
     saveModalCancelText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#64748B',
+      color: Colors.neutral.textSecondary,
     },
     saveModalSubmitBtn: {
       flex: 1,
       height: 42,
       borderRadius: 10,
-      backgroundColor: '#4F46E5',
+      backgroundColor: Colors.primary[600],
       alignItems: 'center',
       justifyContent: 'center',
     },
     saveModalSubmitText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#FFFFFF',
+      color: Colors.neutral.white,
     },
   });
 };
