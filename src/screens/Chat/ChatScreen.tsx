@@ -51,17 +51,18 @@ function ChatScreen() {
   const [pendingNumber, setPendingNumber] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextState => {
-      if (nextState === 'active' && isReady) {
-        warmup(LOCAL_AI_SYSTEM_PROMPT).catch(error => {
-          console.warn('[LocalAI] resume warmup failed', error);
-        });
-      }
-    });
+  // useEffect(() => {
+  //   const subscription = AppState.addEventListener('change', nextState => {
+  //     if (nextState === 'active' && isReady) {
+  //       warmup(LOCAL_AI_SYSTEM_PROMPT).catch(error => {
+  //         console.warn('[LocalAI] resume warmup failed', error);
+  //       });
+  //     }
+  //   });
 
-    return () => subscription.remove();
-  }, [isReady, warmup]);
+  //   return () => subscription.remove();
+  // }, [isReady, warmup]);
+  //có thể bỏ nếu test thấy thừa
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {

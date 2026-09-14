@@ -152,8 +152,9 @@ class KnowledgeService {
     ];
     const hasMorseKeyword = morseKeywords.some(keyword => text.includes(keyword));
     const hasCharacterQuestion = /(?:chữ|ký tự|mã|morse|tín hiệu)\s*[a-z0-9]\b/i.test(text);
+    const isGreeting = /^(?:xin\s+)?chào(?:\s+bạn|mori)?[!.?]*$|^(?:hello|hi|hey)[!.?]*$/i.test(text);
 
-    return hasMorseKeyword || hasCharacterQuestion;
+    return hasMorseKeyword || hasCharacterQuestion || isGreeting;
   }
 
   /**
@@ -193,7 +194,7 @@ class KnowledgeService {
       return this._buildCharacterResponse(standaloneCharacterMatch[0]);
     }
 
-    // 3. Hỏi về ký tự
+    // 4. Hỏi về ký tự
     const characterMatch = text.match(/(?:chữ|ký tự|mã|morse|tín hiệu|hiệu)\s*([a-z0-9])/i);
 
     if (
@@ -208,7 +209,7 @@ class KnowledgeService {
       }
     }
 
-    // 3. Báo vụ
+    // 5. Báo vụ
     if (text.includes('báo vụ')) {
       return {
         type: 'rule',
@@ -217,7 +218,7 @@ class KnowledgeService {
       };
     }
 
-    // 4. Hỏi về tích
+    // 6. Hỏi về tích
     if (text.includes('tích')) {
       const rule = knowledgeBase.morseRules.rules.find(
         item => item.title.toLowerCase() === 'tích'
@@ -228,7 +229,7 @@ class KnowledgeService {
       };
     }
 
-    // 5. Hỏi về tà
+    // 7. Hỏi về tà
     if (text.includes('tà')) {
       const rule = knowledgeBase.morseRules.rules.find(
         item => item.title.toLowerCase() === 'tà'
@@ -239,7 +240,7 @@ class KnowledgeService {
       };
     }
 
-    // 6. SOS
+    // 8. SOS
     if (text.includes('sos')) {
       return {
         type: 'morse_decode',
@@ -248,7 +249,7 @@ class KnowledgeService {
       };
     }
 
-    // 7. Không tìm thấy
+    // 9. Không tìm thấy
     return {
       type: 'unknown',
       message:
