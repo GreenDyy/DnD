@@ -1,4 +1,4 @@
-export type CharacterType = 'letter' | 'number' | 'mixed';
+import type { CharacterType } from '../types';
 
 // Dữ liệu cần thiết lập cho một bảng điện
 export interface MorseBoardConfig {

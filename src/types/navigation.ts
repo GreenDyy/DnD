@@ -1,4 +1,5 @@
-import type { CharacterType } from '../utils/morseGenerator';
+import type { CharacterType } from '.';
+import { MorseBoardFile } from '../services/fileBoardService';
 
 export type RootStackParamList = {
   SplashScreen: undefined;
@@ -9,10 +10,11 @@ export type RootStackParamList = {
     groupCount: number;
     characterType: CharacterType;
     cpm?: number;
+    savedBoard: MorseBoardFile;
   };
   ChatScreen: undefined;
   PlaygroundScreen: undefined;
-
+  SavedBoardsScreen: undefined;
 };
 
 export type PlaygroundStackParamList = {

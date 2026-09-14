@@ -1,9 +1,8 @@
-export const CHARACTER_OPTIONS = [
-  { value: 'letter', label: 'Chữ' },
-  { value: 'number', label: 'Số' },
-  { value: 'shortNumber', label: 'Số tắt' },
-  { value: 'mixed', label: 'Hỗn hợp' },
-] as const;
+import type { CharacterType } from '../types';
 
-//like enum
-export type CharacterType = (typeof CHARACTER_OPTIONS)[number]['value'];
+export const CHARACTER_OPTIONS: { value: CharacterType; label: string }[] = [
+  { value: 'letter', label: 'chữ cái' },
+  { value: 'number', label: 'chữ số' },
+  { value: 'shortNumber', label: 'chữ số tắt' },
+  { value: 'mixed', label: 'hỗn hợp' },
+];

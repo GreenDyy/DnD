@@ -7,7 +7,7 @@ import { textToMorse } from '../../../constants/morseMap';
 import { styles } from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type CharacterType } from '../../../utils/morseGenerator';
+import { type CharacterType } from '../../../types';
 import type { PlaygroundStackParamList } from '../../../types/navigation';
 
 export default function AudioPlaygroundScreen() {
