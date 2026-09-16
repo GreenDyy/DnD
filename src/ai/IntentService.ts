@@ -121,13 +121,13 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
   {
     type: 'play_morse',
     patterns: [
-      /(?:phát|nghe|play)\s+(?:morse|mã)\s+(?:cho|của|từ)?\s*["""]?([a-zA-Z0-9.,?]+)["""]?/i,
-      /(?:nghe|morse)\s+([a-zA-Z0-9.,?]+)\s*(?:nhé|đi|please)?/i,
+      /(?:phát|nghe|play)\s+(?:morse|mã)\s+(?:cho|của|từ)?\s*["""]?([a-zA-Z0-9])["""]?/i,
+      /(?:nghe|morse)\s+([a-zA-Z0-9])\s*(?:nhé|đi|please)\s*$/i,
     ],
     extractor: (match) => {
       const text = match.input || '';
       const params: Record<string, any> = {};
-      const charMatch = text.match(/(?:morse|mã|play|nghe)\s+(?:cho|của|từ)?\s*["""]?([a-zA-Z0-9.,?]+)["""]?/i);
+      const charMatch = text.match(/(?:morse|mã|play|nghe)\s+(?:cho|của|từ)?\s*["""]?([a-zA-Z0-9])["""]?/i);
       if (charMatch) {
         params.character = charMatch[1].toUpperCase();
       }

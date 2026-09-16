@@ -94,241 +94,201 @@ function ChatScreen() {
     }
   }, []);
 
+  const showBotMessage = useCallback((reply: string, actionMsg?: Message['action'], playback?: Message['playback']) => {
+    const botMessage: Message = {
+      id: (Date.now() + 2).toString(),
+      role: 'bot',
+      text: reply,
+      action: actionMsg,
+      playback,
+    };
+    setTimeout(() => {
+      setMessages(prev => [...prev.slice(0, -1), botMessage]);
+    }, 400);
+  }, []);
+
+  const handlePendingPlay = useCallback(async (text: string): Promise<boolean> => {
+    if (!pendingPlayChar) return false;
+
+    if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
+      await playMorseSignal(pendingPlayChar);
+      showBotMessage(`Đã phát tín hiệu ${pendingPlayChar.character}.`, undefined, pendingPlayChar);
+      setPendingPlayChar(null);
+      return true;
+    }
+    setPendingPlayChar(null);
+    return false;
+  }, [pendingPlayChar, playMorseSignal, showBotMessage]);
+
+  const handlePendingIntent = useCallback((text: string): boolean => {
+    if (!pendingIntent) return false;
+
+    const result = collectMissingParams(pendingIntent, text);
+    const updatedIntent: ParsedIntent = {
+      ...pendingIntent,
+      params: result.params,
+      isComplete: result.isComplete,
+      missingParams: result.missingParams,
+    };
+
+    let reply: string;
+    let actionMsg: Message['action'] | undefined;
+
+    if (result.isComplete) {
+      reply = generateIntentResponse(updatedIntent.type, result.params);
+      const navTarget = getIntentNavigation(updatedIntent.type, result.params);
+      actionMsg = navTarget ? {
+        label: updatedIntent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
+        screen: navTarget.screen,
+        params: navTarget.params,
+      } : undefined;
+      setPendingIntent(null);
+    } else {
+      reply = getFollowUpQuestion(updatedIntent);
+      setPendingIntent(updatedIntent);
+    }
+
+    showBotMessage(reply, actionMsg);
+    return true;
+  }, [pendingIntent, showBotMessage]);
+
+  const handlePendingNumber = useCallback((text: string): boolean => {
+    if (!pendingNumber) return false;
+
+    const variant = /(?:số\s*)?(?:tắt|short)/i.test(text)
+      ? 'short'
+      : /(?:số\s*)?(?:thường|normal)/i.test(text)
+        ? 'normal'
+        : null;
+
+    if (!variant) {
+      showBotMessage(`Bạn muốn hỏi số ${pendingNumber} thường hay số ${pendingNumber} tắt?`);
+      return true;
+    }
+
+    const numberResult = knowledgeService.getNumberResponse(pendingNumber, variant);
+    setPendingNumber(null);
+
+    if (numberResult?.type === 'character') {
+      const reply = `${numberResult.message}\n\nBạn có muốn tôi phát tín hiệu ${numberResult.answer} không?`;
+      setPendingPlayChar({ character: numberResult.answer, code: numberResult.code });
+      showBotMessage(reply);
+    } else {
+      showBotMessage(REPLIES.GENERATE_ERROR);
+    }
+    return true;
+  }, [pendingNumber, showBotMessage]);
+
+  const handleNewIntent = useCallback((text: string): boolean => {
+    const intent: ParsedIntent = parseIntent(text);
+    console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+
+    if (intent.type === 'ask_morse') return false;
+
+    if (intent.isComplete) {
+      const navTarget = getIntentNavigation(intent.type, intent.params);
+      const actionMsg = navTarget ? {
+        label: intent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
+        screen: navTarget.screen,
+        params: navTarget.params,
+      } : undefined;
+      showBotMessage(intent.response, actionMsg);
+    } else {
+      setPendingIntent(intent);
+      showBotMessage(getFollowUpQuestion(intent));
+    }
+    return true;
+  }, [showBotMessage]);
+
+  const handleAskMorse = useCallback(async (text: string) => {
+    const askResult = knowledgeService.ask(text);
+
+    if (!askResult) {
+      throw new Error('Không thể xử lý câu hỏi Morse');
+    }
+
+    if (askResult.type === 'ambiguous_number') {
+      setPendingNumber(askResult.answer);
+      showBotMessage(askResult.message);
+      return;
+    }
+
+    if (askResult.type === 'character') {
+      setPendingPlayChar({ character: askResult.answer });
+      showBotMessage(`${askResult.message}\n\nBạn có muốn tôi phát tín hiệu ${askResult.answer} không?`);
+      return;
+    }
+
+    if (askResult.type === 'rule' || askResult.type === 'morse_decode') {
+      showBotMessage(askResult.message);
+      return;
+    }
+
+    await handleLLM(text, askResult.message);
+  }, [showBotMessage]);
+
+  const handleLLM = useCallback(async (text: string, fallbackReply: string) => {
+    let reply: string;
+
+    if (!isReady) {
+      reply = fallbackReply;
+    } else if (!knowledgeService.isRelevant(text)) {
+      reply = REPLIES.OUT_OF_SCOPE;
+    } else {
+      const context = knowledgeService.getContext(text);
+      let fullPrompt = `Context từ knowledge base:\n${context}\n\nCâu hỏi của người dùng: ${text}`;
+
+      console.log('🔍 [RAG] Context:', context);
+      console.log('📝 [RAG] Full prompt:', fullPrompt);
+
+      if (fullPrompt.length > MAX_PROMPT_LENGTH) {
+        fullPrompt = fullPrompt.substring(0, MAX_PROMPT_LENGTH);
+        console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
+      }
+
+      const maxTokensForGen = 128;
+      const budget = knowledgeService.checkTokenBudget(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
+
+      console.log('💰 [Token] Budget:', budget);
+
+      if (!budget.ok) {
+        reply = `⚠️ ${budget.message}`;
+      } else {
+        reply = await generate(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
+        reply = reply.trim() || REPLIES.GENERATE_ERROR;
+      }
+    }
+
+    showBotMessage(reply);
+  }, [isReady, generate, showBotMessage]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isGenerating) return;
 
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', text };
-    const thinkingMessage: Message = { id: (Date.now() + 1).toString(), role: 'bot', text: '...' };
-
-    setMessages(prev => [...prev, userMessage, thinkingMessage]);
+    setMessages(prev => [
+      ...prev,
+      { id: Date.now().toString(), role: 'user', text },
+      { id: (Date.now() + 1).toString(), role: 'bot', text: '...' },
+    ]);
     setInput('');
     setIsGenerating(true);
     scrollToBottom();
 
     try {
-      let reply: string;
-      let actionMsg: Message['action'] | undefined;
-
-      // === CASE 0: Đang chờ xác nhận phát âm thanh Morse ===
-      if (pendingPlayChar) {
-        if (/(?:có|muốn|được|ok|yes|phát|nghe|nghe thử)/i.test(text)) {
-          await playMorseSignal(pendingPlayChar);
-          reply = `Đã phát tín hiệu ${pendingPlayChar.character}.`;
-          setPendingPlayChar(null);
-
-          const botMessage: Message = {
-            id: (Date.now() + 2).toString(),
-            role: 'bot',
-            text: reply,
-            playback: pendingPlayChar,
-          };
-          setTimeout(() => {
-            setMessages(prev => [...prev.slice(0, -1), botMessage]);
-          }, 400);
-          return;
-        }
-        // Không match "có" → silent cancel, rơi xuống xử lý câu mới
-        setPendingPlayChar(null);
-      }
-
-      // === CASE 1: Có pendingIntent đang chờ collect params ===
-      if (pendingIntent) {
-        const result = collectMissingParams(pendingIntent, text);
-        const updatedIntent: ParsedIntent = {
-          ...pendingIntent,
-          params: result.params,
-          isComplete: result.isComplete,
-          missingParams: result.missingParams,
-        };
-
-        if (result.isComplete) {
-          reply = generateIntentResponse(updatedIntent.type, result.params);
-
-          const navTarget = getIntentNavigation(updatedIntent.type, result.params);
-          actionMsg = navTarget ? {
-            label: updatedIntent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
-            screen: navTarget.screen,
-            params: navTarget.params,
-          } : undefined;
-
-          setPendingIntent(null);
-        } else {
-          // Còn thiếu → hỏi tiếp
-          reply = getFollowUpQuestion(updatedIntent);
-          setPendingIntent(updatedIntent);
-        }
-
-        const botMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          role: 'bot',
-          text: reply,
-          action: actionMsg,
-        };
-
-        setTimeout(() => {
-          setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        }, 400);
-        return;
-      }
-
-      // === CASE 2: Chờ chọn số thường hay số tắt ===
-      if (pendingNumber) {
-        const variant = /(?:số\s*)?(?:tắt|short)/i.test(text)
-          ? 'short'
-          : /(?:số\s*)?(?:thường|normal)/i.test(text)
-            ? 'normal'
-            : null;
-
-        if (!variant) {
-          reply = `Bạn muốn hỏi số ${pendingNumber} thường hay số ${pendingNumber} tắt?`;
-          const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-          setMessages(prev => [...prev.slice(0, -1), botMessage]);
-          return;
-        }
-
-        const numberResult = knowledgeService.getNumberResponse(pendingNumber, variant);
-        setPendingNumber(null);
-
-        if (numberResult?.type === 'character') {
-          reply = `${numberResult.message}\n\nBạn có muốn tôi phát tín hiệu ${numberResult.answer} không?`;
-          setPendingPlayChar({
-            character: numberResult.answer,
-            code: numberResult.code,
-          });
-        } else {
-          reply = REPLIES.GENERATE_ERROR;
-        }
-
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        return;
-      }
-
-      // === CASE 3: Parse intent mới ===
-      const intent = parseIntent(text);
-      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
-
-      if (intent.type !== 'ask_morse') {
-        if (intent.isComplete) {
-          // Đủ params → show action
-          reply = intent.response;
-          const navTarget = getIntentNavigation(intent.type, intent.params);
-          actionMsg = navTarget ? {
-            label: intent.type === 'practice_electro' ? 'Bắt đầu thu' : 'Bắt đầu luyện',
-            screen: navTarget.screen,
-            params: navTarget.params,
-          } : undefined;
-
-          const botMessage: Message = {
-            id: (Date.now() + 2).toString(),
-            role: 'bot',
-            text: reply,
-            action: actionMsg,
-          };
-
-          setTimeout(() => {
-            setMessages(prev => [...prev.slice(0, -1), botMessage]);
-          }, 400);
-        } else {
-          // Thiếu params → hỏi & lưu pendingIntent
-          reply = getFollowUpQuestion(intent);
-          setPendingIntent(intent);
-
-          const botMessage: Message = {
-            id: (Date.now() + 2).toString(),
-            role: 'bot',
-            text: reply,
-          };
-
-          setTimeout(() => {
-            setMessages(prev => [...prev.slice(0, -1), botMessage]);
-          }, 400);
-        }
-        return;
-      }
-
-      // === CASE 4: ask_morse → Kiểm tra rule-based trước, sau đó LLM ===
-      const askResult = knowledgeService.ask(text);
-
-      if (!askResult) {
-        throw new Error('Không thể xử lý câu hỏi Morse');
-      }
-
-      if (askResult.type === 'ambiguous_number') {
-        setPendingNumber(askResult.answer);
-        reply = askResult.message;
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        return;
-      }
-
-      if (askResult.type === 'character') {
-        // Hỏi về ký tự → trả lời trực tiếp + hỏi phát âm
-        const char = askResult.answer;
-        reply = askResult.message;
-        reply += `\n\nBạn có muốn tôi phát tín hiệu ${char} không?`;
-        setPendingPlayChar({ character: char });
-
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setTimeout(() => {
-          setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        }, 400);
-        return;
-      }
-
-      if (askResult.type === 'rule' || askResult.type === 'morse_decode') {
-        reply = askResult.message;
-        const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-        setMessages(prev => [...prev.slice(0, -1), botMessage]);
-        return;
-      }
-
-      // Các loại query khác → qua LLM
-      if (isReady) {
-        if (!knowledgeService.isRelevant(text)) {
-          reply = REPLIES.OUT_OF_SCOPE;
-        } else {
-          const context = knowledgeService.getContext(text);
-          let fullPrompt = `Context từ knowledge base:\n${context}\n\nCâu hỏi của người dùng: ${text}`;
-
-          console.log('🔍 [RAG] Context:', context);
-          console.log('📝 [RAG] Full prompt:', fullPrompt);
-
-          if (fullPrompt.length > MAX_PROMPT_LENGTH) {
-            fullPrompt = fullPrompt.substring(0, MAX_PROMPT_LENGTH);
-            console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
-          }
-
-          const maxTokensForGen = 128;
-          const budget = knowledgeService.checkTokenBudget(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
-
-          console.log('💰 [Token] Budget:', budget);
-
-          if (!budget.ok) {
-            reply = `⚠️ ${budget.message}`;
-          } else {
-            reply = await generate(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
-            reply = reply.trim() || REPLIES.GENERATE_ERROR;
-          }
-        }
-      } else {
-        reply = askResult.message;
-      }
-
-      const botMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: reply };
-      setMessages(prev => [...prev.slice(0, -1), botMessage]);
+      if (await handlePendingPlay(text)) return;
+      if (handlePendingIntent(text)) return;
+      if (handlePendingNumber(text)) return;
+      if (handleNewIntent(text)) return;
+      await handleAskMorse(text);
     } catch (err: any) {
-      if (err?.message === 'CANCELLED') {
-        return;
-      }
-      const errorMessage: Message = { id: (Date.now() + 2).toString(), role: 'bot', text: `Lỗi: ${err.message || 'Không thể generate'}` };
-      setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      if (err?.message === 'CANCELLED') return;
+      showBotMessage(`Lỗi: ${err.message || 'Không thể generate'}`);
     } finally {
       setIsGenerating(false);
       scrollToBottom();
     }
-  }, [input, isGenerating, isReady, pendingIntent, pendingNumber, pendingPlayChar, generate, playMorseSignal, scrollToBottom]);
+  }, [input, isGenerating, handlePendingPlay, handlePendingIntent, handlePendingNumber, handleNewIntent, handleAskMorse, showBotMessage, scrollToBottom]);
 
   const statusText = isLoading
     ? `Đang tải... ${progress}%`
@@ -360,8 +320,6 @@ function ChatScreen() {
     }
   }, [playMorseSignal]);
 
-  const keyExtractor = useCallback((item: Message) => item.id, []);
-
   const renderItem = useCallback(({ item }: { item: Message }) => (
     <MessageItem item={item} onAction={handleAction} onReplay={handleReplay} />
   ), [handleAction, handleReplay]);
@@ -388,7 +346,7 @@ function ChatScreen() {
             contentContainerStyle={styles.messageListContent}
             data={messages}
             renderItem={renderItem}
-            keyExtractor={keyExtractor}
+            keyExtractor={(item: Message) => item.id}
             removeClippedSubviews={true}
             maxToRenderPerBatch={10}
             windowSize={5}

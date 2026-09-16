@@ -63,7 +63,7 @@ const features = [
     bgColor: '#DCFCE7',
     screen: 'SavedBoardsScreen',
   },
-];
+].filter((feature) => __DEV__ || feature.id !== '3');
 
 function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

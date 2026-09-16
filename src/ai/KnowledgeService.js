@@ -195,7 +195,7 @@ class KnowledgeService {
     }
 
     // 4. Hỏi về ký tự
-    const characterMatch = text.match(/(?:chữ|ký tự|mã|morse|tín hiệu|hiệu)\s*([a-z0-9])/i);
+    const characterMatch = text.match(/(?:chữ|ký tự|mã|morse|tín hiệu|hiệu)\s+([a-z0-9])\b/i);
 
     if (
       characterMatch &&
