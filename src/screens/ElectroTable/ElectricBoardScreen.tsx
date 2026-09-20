@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -13,11 +15,11 @@ import {
   View,
 } from 'react-native';
 import {
-  ArrowLeft,
   Bookmark,
   Headphones,
   Sliders,
   Volume2,
+  Camera,
 } from 'lucide-react-native';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +27,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { launchCamera } from 'react-native-image-picker';
 
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { playCharacterAudio, stopCharacterAudio } from '../../assets/audioMap';
@@ -40,6 +43,7 @@ import {
   saveBoardToFile,
   type MorseBoardFile,
 } from '../../services/fileBoardService';
+import { scanMorseSheetFromImage } from '../../services/ocrMorseService';
 
 // Import các sub-components dùng chung
 import { MorseTelegraphSheet } from '../../components/ElectricTable/MorseTelegraphSheetProps';
@@ -51,7 +55,10 @@ import {
 import { AudioPlaybackControls } from '../../components/ElectricTable/AudioPlaybackControls';
 import { SliderCustom } from '../../components/Common/SliderCustom';
 import { ScreenHeader } from '../../components/ElectricTable/ElectricTableHeader';
+import { MorseCheckModal } from '../../components/ElectricTable/MorseCheckModal';
 import { Colors } from '../../constants/colors';
+import { requestCameraPermission } from '../../utils/permissionHelper';
+import { AppAlertModal } from '../../components/Common/AppAlertModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 
@@ -146,6 +153,30 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           : 'Hỗn hợp'
       }`,
   );
+
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedText, setScannedText] = useState('');
+  const [showCheckModal, setShowCheckModal] = useState(false);
+
+  // state quản lý alert custom
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    onConfirm?: () => void,
+  ) => {
+    setAlertConfig({ visible: true, title, message, onConfirm });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
 
   // Tính toán chuỗi đầu điện
   const preambleData: PreambleData = useMemo(
@@ -403,6 +434,76 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     setActiveCompareIndex(-1);
   };
 
+  // Quét ảnh từ camera và nhận diện chữ viết tay thành chuỗi nhóm Morse
+  const handleScanPaper = async () => {
+    try {
+      if (isPlaying) {
+        handleResetAudio();
+      }
+
+      const result = await launchCamera({
+        mediaType: 'photo',
+        cameraType: 'back',
+        quality: 1.0,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        saveToPhotos: false,
+      });
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorCode === 'permission') {
+        showAlert(
+          'Quyền Camera bị từ chối',
+          'Vui lòng vào Cài đặt để cấp quyền máy ảnh cho ứng dụng.',
+          () => Linking.openSettings(),
+        );
+        return;
+      }
+
+      if (result.errorCode) {
+        showAlert('Lỗi máy ảnh', result.errorMessage || result.errorCode);
+        return;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const photoUri = result.assets[0].uri;
+      if (!photoUri) return;
+
+      setIsScanning(true);
+
+      // Khai báo biến bên ngoài try con để tránh lỗi scope
+      let textExtracted = '';
+      try {
+        textExtracted = await scanMorseSheetFromImage(photoUri, characterType);
+      } catch (scanErr) {
+        console.log(scanErr);
+        showAlert('Lỗi quét', 'Không thể phân tích ảnh chụp từ camera.');
+        return;
+      }
+
+      if (!textExtracted.trim()) {
+        showAlert(
+          'Không tìm thấy chữ',
+          'Không nhận dạng được ký tự trên trang giấy. Vui lòng căn góc sáng và chụp rõ nét hơn.',
+        );
+        return;
+      }
+
+      setScannedText(textExtracted);
+      setShowCheckModal(true);
+    } catch (error) {
+      console.log('Lỗi launchCamera:', error);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
@@ -505,6 +606,26 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           onToggleCompare={compareBoard}
           onResetCompare={resetComparison}
         />
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            // disabled={isScanning}
+            style={[
+              styles.compareBtn,
+              { backgroundColor: Colors.primary[600], flex: 1 },
+            ]}
+            onPress={handleScanPaper}
+          >
+            {isScanning ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Camera size={18} color="#FFFFFF" />
+                <Text style={styles.compareBtnText}>Quét bài thu (Camera)</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Khu vực Cài đặt */}
         <View style={styles.sectionHeader}>
@@ -643,6 +764,22 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Kiểm tra kết quả quét từ camera */}
+      <MorseCheckModal
+        visible={showCheckModal}
+        onClose={() => setShowCheckModal(false)}
+        originalGroups={groups}
+        initialText={scannedText}
+      />
+
+      <AppAlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={closeAlert}
+        onConfirm={alertConfig.onConfirm}
+      />
     </SafeAreaView>
   );
 };

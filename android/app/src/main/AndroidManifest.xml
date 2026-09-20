@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Quyền mở Camera -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Yêu cầu tính năng camera phần cứng (không bắt buộc có autofocus để hỗ trợ nhiều máy ảo/máy thật cũ) -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <application
       android:name=".MainApplication"
