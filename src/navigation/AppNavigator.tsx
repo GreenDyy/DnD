@@ -10,6 +10,7 @@ import ElectricBoardScreen from '../screens/ElectroTable/ElectricBoardScreen';
 import DrawerNavigator from './DrawerNavigator';
 import PlaygroundNavigator from './PlaygroundNavigator';
 import SavedBoardsScreen from '../screens/savedBoards/SavedBoardsScreen';
+import MorseTapScreen from '../screens/MorseTap/MorseTapScreen';
 
 const Stack = createNativeStackNavigator<AppRootStackParamList>();
 
@@ -27,6 +28,8 @@ function AppNavigator() {
       <Stack.Screen name="PlaygroundScreen" component={PlaygroundNavigator} />
       <Stack.Screen name="ChatScreen" component={DrawerNavigator} />
       <Stack.Screen name="SavedBoardsScreen" component={SavedBoardsScreen} />
+      <Stack.Screen name="MorseTapScreen" component={MorseTapScreen} />
+
     </Stack.Navigator>
   );
 }

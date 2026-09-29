@@ -5,4 +5,5 @@ export const images = {
 
 }
 export const icons = {
+  tap: require('./icons/tap.png'),
 };

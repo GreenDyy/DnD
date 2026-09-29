@@ -319,6 +319,23 @@ class MorseAudioEngine {
     this.initialized = false;
     this.onProgressCallback = null;
   }
+
+  //for manual tone control (for MorseTapScreen)
+  async startManualTone() {
+    await this.start();
+
+    if (!this.gain) return;
+
+    this.gain.gain.value = this.volume;
+    this.playing = true;
+  }
+
+  stopManualTone() {
+    if (!this.gain) return;
+
+    this.gain.gain.value = 0;
+    this.playing = false;
+  }
 }
 
 // Xuất đối tượng dùng chung duy nhất (Singleton) cho toàn bộ ứng dụng

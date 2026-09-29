@@ -23,6 +23,7 @@ import { colors } from '../../theme/colors';
 import { AI_NAME, REPLIES } from '../../constants';
 import { morseAudio } from '../../audio/MorseAudioEngine';
 import { images } from '../../assets';
+import { useSpeechToText } from '../../hooks/useSpeechToText';
 
 const MAX_INPUT_LENGTH = 200;
 const MAX_PROMPT_LENGTH = 800;
@@ -50,6 +51,25 @@ function ChatScreen() {
   const [pendingPlayChar, setPendingPlayChar] = useState<PendingPlayback | null>(null);
   const [pendingNumber, setPendingNumber] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  // Speech-to-Text
+  const { isListening, transcript, startListening, stopListening } = useSpeechToText();
+  const speechTranscriptRef = useRef(transcript);
+
+  useEffect(() => {
+    speechTranscriptRef.current = transcript;
+  }, [transcript]);
+
+  // Auto-send when speech recognition completes
+  useEffect(() => {
+    if (!isListening && transcript.trim() && speechTranscriptRef.current) {
+      // Speech recognition just finished, auto-send
+      const textToSend = speechTranscriptRef.current;
+      setInput(textToSend);
+      handleSend();
+      speechTranscriptRef.current = '';
+    }
+  }, [isListening, transcript]);
 
   // useEffect(() => {
   //   const subscription = AppState.addEventListener('change', nextState => {
@@ -363,6 +383,10 @@ function ChatScreen() {
           onChangeText={setInput}
           onSend={handleSend}
           onStop={handleStop}
+          onSpeechStart={startListening}
+          onSpeechStop={stopListening}
+          isListening={isListening}
+          speechTranscript={transcript}
           maxLength={MAX_INPUT_LENGTH}
         />
       </KeyboardAvoidingView>

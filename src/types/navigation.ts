@@ -10,11 +10,12 @@ export type RootStackParamList = {
     groupCount: number;
     characterType: CharacterType;
     cpm?: number;
-    savedBoard: MorseBoardFile;
+    savedBoard?: MorseBoardFile;
   };
   ChatScreen: undefined;
   PlaygroundScreen: undefined;
   SavedBoardsScreen: undefined;
+  MorseTapScreen: undefined;
 };
 
 export type PlaygroundStackParamList = {

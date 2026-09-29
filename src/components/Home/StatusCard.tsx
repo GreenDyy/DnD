@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { CheckCircle2, AlertCircle, Loader2, Brain } from 'lucide-react-native';
+import { CheckCircle2, AlertCircle, Loader2, Brain, TrainFront, Bot } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
 
 interface StatusCardProps {
@@ -11,7 +11,7 @@ interface StatusCardProps {
 
 function StatusCard({ isReady, isLoading, error }: StatusCardProps) {
   const status = isReady
-    ? { icon: CheckCircle2, text: 'AI sẵn sàng', color: '#16A34A', bg: '#F0FDF4', desc: 'Bạn có thể hỏi bất cứ điều gì về Morse' }
+    ? { icon: Bot, text: 'AI sẵn sàng', color: '#16A34A', bg: '#F0FDF4', desc: 'Bạn có thể hỏi bất cứ điều gì về Morse' }
     : isLoading
       ? { icon: Loader2, text: 'Đang tải model...', color: '#EAB308', bg: '#FEF9C3', desc: 'Vui lòng chờ trong giây lát' }
       : error

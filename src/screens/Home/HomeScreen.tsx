@@ -10,60 +10,10 @@ import { images } from '../../assets';
 import { useLocalAIStore } from '../../store';
 import { HeroBanner, StatusCard, FeatureCard } from '../../components/Home';
 import {
-  BookOpen,
-  Headphones,
-  Zap,
-  Radio,
   Settings,
 } from 'lucide-react-native';
+import { features } from './features';
 
-const features = [
-  {
-    id: '1',
-    icon: BookOpen,
-    title: 'Học Morse',
-    desc: 'Bảng chữ cái và quy tắc',
-    color: '#16A34A',
-    bgColor: '#F0FDF4',
-    screen: null,
-  },
-  {
-    id: '2',
-    icon: Headphones,
-    title: 'Tíc Tà Sound',
-    desc: 'Nghe và nhận dạng tín hiệu',
-    color: '#22C55E',
-    bgColor: '#DCFCE7',
-    screen: 'DnDScreen',
-  },
-  {
-    id: '3',
-    icon: Zap,
-    title: 'Playground',
-    desc: 'Thử tốc độ và chế độ',
-    color: '#EAB308',
-    bgColor: '#FEF9C3',
-    screen: 'PlaygroundScreen',
-  },
-  {
-    id: '4',
-    icon: Radio,
-    title: 'Bảng điện',
-    desc: 'Luyện truyền và nhận điện',
-    color: '#15803D',
-    bgColor: '#DCFCE7',
-    screen: 'ElectroTableScreen',
-  },
-  {
-    id: '5',
-    icon: Radio,
-    title: 'Bảng điện đã lưu',
-    desc: 'Xem lại các bảng điện đã lưu',
-    color: '#15803D',
-    bgColor: '#DCFCE7',
-    screen: 'SavedBoardsScreen',
-  },
-].filter((feature) => __DEV__ || feature.id !== '3');
 
 function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -105,18 +55,20 @@ function HomeScreen() {
         <View style={styles.featuresSection}>
           <Text style={styles.sectionTitle}>Chức năng</Text>
           <View style={styles.featuresGrid}>
-            {features.map((f) => (
-              <FeatureCard
-                key={f.id}
-                icon={f.icon}
-                title={f.title}
-                desc={f.desc}
-                color={f.color}
-                bgColor={f.bgColor}
-                hasScreen={!!f.screen}
-                onPress={() => f.screen && navigation.navigate(f.screen)}
-              />
-            ))}
+            {features
+              .filter((feature) => __DEV__ || feature.id !== '3')
+              .map((f) => (
+                <FeatureCard
+                  key={f.id}
+                  icon={f.icon}
+                  title={f.title}
+                  desc={f.desc}
+                  color={f.color}
+                  bgColor={f.bgColor}
+                  hasScreen={!!f.screen}
+                  onPress={() => navigation.navigate(f.screen)}
+                />
+              ))}
           </View>
         </View>
       </ScrollView>
