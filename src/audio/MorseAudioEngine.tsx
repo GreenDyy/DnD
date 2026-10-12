@@ -30,6 +30,8 @@ class MorseAudioEngine {
   // Cờ trạng thái âm thanh tiếng bip đang kêu (true) hay tắt (false)
   private playing = false;
 
+  private manualToneRequest = 0;
+
   // Cờ bật/tắt chế độ mã hóa số tắt (Short Numbers: 1=.-, 0=-, ...)
   private useShortNumbers = false;
 
@@ -288,6 +290,7 @@ class MorseAudioEngine {
 
   // Dừng hẳn bài phát hiện tại và hủy bỏ toàn bộ luồng đang chờ
   stop() {
+    this.manualToneRequest += 1;
     this.stopRequested = true;
     this.isPaused = false;
     this.playbackToken += 1;
@@ -322,15 +325,17 @@ class MorseAudioEngine {
 
   //for manual tone control (for MorseTapScreen)
   async startManualTone() {
+    const request = ++this.manualToneRequest;
     await this.start();
 
-    if (!this.gain) return;
+    if (request !== this.manualToneRequest || !this.gain) return;
 
     this.gain.gain.value = this.volume;
     this.playing = true;
   }
 
   stopManualTone() {
+    this.manualToneRequest += 1;
     if (!this.gain) return;
 
     this.gain.gain.value = 0;

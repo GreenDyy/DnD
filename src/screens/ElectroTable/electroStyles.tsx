@@ -1,5 +1,5 @@
 import { Platform, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { Colors } from '../../theme/colors';
 
 export const electroStyles = StyleSheet.create({
   safeArea: {

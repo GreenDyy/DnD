@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { Colors } from '../../constants/colors';
+import { Colors } from '../../theme/colors';
 
 interface ScreenHeaderProps {
   title: string;

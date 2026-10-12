@@ -51,7 +51,7 @@ import {
 import { AudioPlaybackControls } from '../../components/ElectricTable/AudioPlaybackControls';
 import { SliderCustom } from '../../components/Common/SliderCustom';
 import { ScreenHeader } from '../../components/ElectricTable/ElectricTableHeader';
-import { Colors } from '../../constants/colors';
+import { Colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ElectricBoardScreen'>;
 

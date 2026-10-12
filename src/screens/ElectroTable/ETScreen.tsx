@@ -24,7 +24,7 @@ import {
 import type { CharacterType } from '../../types';
 import { electroStyles } from './electroStyles';
 import { ScreenHeader } from '../../components/ElectricTable/ElectricTableHeader';
-import { Colors } from '../../constants/colors';
+import { Colors } from '../../theme/colors';
 
 interface CharacterOption {
   value: CharacterType;
