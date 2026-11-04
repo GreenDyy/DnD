@@ -36,7 +36,7 @@ export default function MorseTapScreen() {
 
   const handlePressIn = () => {
     setIsHolding(true);
-    void morseAudio.startManualTone();
+    morseAudio.startManualTone();
   };
 
   const handlePressOut = () => {
@@ -127,9 +127,9 @@ export default function MorseTapScreen() {
           </View>
 
           <Text style={styles.tipText}>
-            Mỗi nhịp gõ của bạn{'\n'}
-            là một dấu chấm, một dấu gạch,{'\n'}
-            đưa bạn đến gần hơn với Morse!
+            Mỗi lần nhấn nút{'\n'}
+            phát một dấu chấm Morse.{'\n'}
+            Hãy gõ nhịp liên tục!
           </Text>
         </View>
       </View>
