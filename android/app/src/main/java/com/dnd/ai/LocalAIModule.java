@@ -201,13 +201,18 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void warmup(String systemPrompt, Promise promise) {
         if (modelHandle == 0) {
+            Log.e(TAG, "warmup rejected: model is not loaded");
             promise.reject("MODEL_NOT_LOADED", "Load the model before warming up");
             return;
         }
 
+        Log.i(TAG, "warmup requested, system prompt length=" +
+                (systemPrompt == null ? 0 : systemPrompt.length()));
         new Thread(() -> {
             try {
+                Log.i(TAG, "warmup: calling native");
                 boolean warmedUp = LlamaNative.warmup(systemPrompt);
+                Log.i(TAG, "warmup: native returned " + warmedUp);
                 if (!warmedUp) {
                     promise.reject("WARMUP_FAILED", "Cannot cache system prompt");
                     return;
