@@ -124,21 +124,25 @@ export const useLocalAIStore = create<LocalAIState>((set, get) => ({
     // Reset cancel flag
     set({ isCancelled: false });
 
-    console.log('📤 [LocalAI] generate called');
-    console.log('  systemPrompt:', systemPrompt.substring(0, 100) + '...');
-    console.log('  userPrompt:', prompt.substring(0, 200) + '...');
-    console.log('  maxTokens:', maxTokens);
+    if (__DEV__) {
+      console.log('📤 [LocalAI] generate called');
+      console.log('  maxTokens:', maxTokens);
+    }
 
     const result = await LocalAI.generate(systemPrompt, prompt, maxTokens);
 
     // Check if cancelled while waiting
     if (get().isCancelled) {
-      console.log('❌ [LocalAI] generate cancelled');
+      if (__DEV__) {
+        console.log('❌ [LocalAI] generate cancelled');
+      }
       set({ isCancelled: false });
       throw new Error('CANCELLED');
     }
 
-    console.log('📥 [LocalAI] generate result:', result?.substring(0, 200));
+    if (__DEV__) {
+      console.log('📥 [LocalAI] generate finished');
+    }
     return result;
   },
 

@@ -85,7 +85,11 @@ export async function loadAllBoardFiles(): Promise<MorseBoardFile[]> {
     // Sắp xếp đề mới nhất lên đầu
     return boardList.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
-    console.error('Lỗi khi đọc danh sách file bảng điện:', error);
+    if (__DEV__) {
+      console.error('Lỗi khi đọc danh sách file bảng điện:', error);
+    } else {
+      console.error('Lỗi khi đọc danh sách file bảng điện.');
+    }
     return [];
   }
 }

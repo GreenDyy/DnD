@@ -290,7 +290,6 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
     try {
       await morseAudio.playText(fullPlaybackText);
-      console.log(fullPlaybackText);
     } finally {
       if (!morseAudio.getIsPaused()) {
         setIsPlaying(false);

@@ -352,7 +352,11 @@ class MorseAudioEngine {
         this.gain.gain.value = this.volume;
       })
       .catch(error => {
-        console.error('Failed to start manual Morse tone:', error);
+        if (__DEV__) {
+          console.error('Failed to start manual Morse tone:', error);
+        } else {
+          console.error('Failed to start manual Morse tone.');
+        }
       });
   }
 

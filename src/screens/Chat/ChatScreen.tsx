@@ -201,7 +201,9 @@ function ChatScreen() {
 
   const handleNewIntent = useCallback((text: string): boolean => {
     const intent: ParsedIntent = parseIntent(text);
-    console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+    if (__DEV__) {
+      console.log('🎯 [Intent]', JSON.stringify(intent, null, 2));
+    }
 
     if (intent.type === 'ask_morse') return false;
 
@@ -258,18 +260,24 @@ function ChatScreen() {
       const context = knowledgeService.getContext(text);
       let fullPrompt = `Context từ knowledge base:\n${context}\n\nCâu hỏi của người dùng: ${text}`;
 
-      console.log('🔍 [RAG] Context:', context);
-      console.log('📝 [RAG] Full prompt:', fullPrompt);
+      if (__DEV__) {
+        console.log('🔍 [RAG] Context:', context);
+        console.log('📝 [RAG] Full prompt:', fullPrompt);
+      }
 
       if (fullPrompt.length > MAX_PROMPT_LENGTH) {
         fullPrompt = fullPrompt.substring(0, MAX_PROMPT_LENGTH);
-        console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
+        if (__DEV__) {
+          console.log('✂️ [RAG] Truncated to:', fullPrompt.length, 'chars');
+        }
       }
 
       const maxTokensForGen = 128;
       const budget = knowledgeService.checkTokenBudget(LOCAL_AI_SYSTEM_PROMPT, fullPrompt, maxTokensForGen);
 
-      console.log('💰 [Token] Budget:', budget);
+      if (__DEV__) {
+        console.log('💰 [Token] Budget:', budget);
+      }
 
       if (!budget.ok) {
         reply = `⚠️ ${budget.message}`;
@@ -335,8 +343,12 @@ function ChatScreen() {
   const handleReplay = useCallback(async (playback: NonNullable<Message['playback']>) => {
     try {
       await playMorseSignal(playback);
-    } catch (err) {
-      console.warn('[MorseAudio] replay failed', err);
+    } catch (audioError) {
+      if (__DEV__) {
+        console.warn('[MorseAudio] replay failed', audioError);
+      } else {
+        console.warn('[MorseAudio] replay failed');
+      }
     }
   }, [playMorseSignal]);
 

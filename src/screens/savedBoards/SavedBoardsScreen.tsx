@@ -76,8 +76,12 @@ const SavedBoardsScreen = ({ navigation }: Props) => {
   const handleShare = async (board: MorseBoardFile) => {
     try {
       await exportBoardFile(board);
-    } catch (err: any) {
-      console.log(err);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('Failed to share board file.', error);
+      } else {
+        console.error('Failed to share board file.');
+      }
       Alert.alert('Lỗi', 'Không thể chia sẻ file đề này.');
     }
   };

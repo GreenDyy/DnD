@@ -3,7 +3,6 @@ package com.dnd.ai;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -20,7 +19,7 @@ import java.io.InputStream;
 
 public class LocalAIModule extends ReactContextBaseJavaModule {
 
-    private static final String TAG = "LocalAI";
+    private final AppLogger logger;
 
     private static final String MODEL_NAME =
             "qwen2.5-1.5b-instruct-q4_k_m.gguf";
@@ -32,6 +31,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
 
     public LocalAIModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        logger = new AppLogger(reactContext, "LocalAI");
     }
 
     @Override
@@ -201,25 +201,25 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void warmup(String systemPrompt, Promise promise) {
         if (modelHandle == 0) {
-            Log.e(TAG, "warmup rejected: model is not loaded");
+            logger.error("warmup rejected: model is not loaded");
             promise.reject("MODEL_NOT_LOADED", "Load the model before warming up");
             return;
         }
 
-        Log.i(TAG, "warmup requested, system prompt length=" +
-                (systemPrompt == null ? 0 : systemPrompt.length()));
+        logger.debug("warmup requested");
         new Thread(() -> {
             try {
-                Log.i(TAG, "warmup: calling native");
+                logger.debug("warmup: calling native");
                 boolean warmedUp = LlamaNative.warmup(systemPrompt);
-                Log.i(TAG, "warmup: native returned " + warmedUp);
+                logger.debug("warmup: native returned " + warmedUp);
                 if (!warmedUp) {
+                    logger.error("warmup failed: native warmup returned false");
                     promise.reject("WARMUP_FAILED", "Cannot cache system prompt");
                     return;
                 }
                 promise.resolve(true);
             } catch (Exception e) {
-                Log.e(TAG, "warmup failed", e);
+                logger.error("warmup failed", e);
                 promise.reject("WARMUP_ERROR", e.getMessage(), e);
             }
         }).start();
@@ -244,7 +244,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void generate(String systemPrompt, String prompt, int maxTokens, Promise promise) {
-        Log.i(TAG, "generate requested, prompt length=" + (prompt == null ? 0 : prompt.length()));
+        logger.debug("generate requested");
         if (modelHandle == 0) {
             promise.reject("MODEL_NOT_LOADED", "Load the model before generating text");
             return;
@@ -252,14 +252,13 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
 
         new Thread(() -> {
             try {
-                Log.i(TAG, "calling native generate");
+                logger.debug("calling native generate");
                 String result = LlamaNative.generate(modelHandle, systemPrompt, prompt, maxTokens);
-                Log.i(TAG, "native generate returned, output length=" + (result == null ? 0 : result.length()));
-                Log.i(TAG, "Value: " + result);
+                logger.debug("native generate returned");
 
                 promise.resolve(result);
             } catch (Exception e) {
-                Log.e(TAG, "native generate failed", e);
+                logger.error("native generate failed", e);
                 promise.reject("GENERATION_ERROR", e.getMessage(), e);
             }
         }).start();
@@ -267,7 +266,7 @@ public class LocalAIModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void stopGenerate() {
-        Log.i(TAG, "stopGenerate called");
+        logger.debug("stopGenerate called");
         LlamaNative.stopGenerate();
     }
 
