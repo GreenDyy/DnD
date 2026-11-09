@@ -10,6 +10,7 @@ export type RootStackParamList = {
     groupCount: number;
     characterType: CharacterType;
     cpm?: number;
+    useShortNumbers?: boolean;
     savedBoard?: MorseBoardFile;
   };
   ChatScreen: undefined;

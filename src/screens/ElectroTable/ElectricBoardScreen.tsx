@@ -108,8 +108,15 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
   // 4. Cấu hình tần số, tốc độ & số tắt
   const [useShortNumbers, setUseShortNumbers] = useState(
-    savedBoardParam?.config.useShortNumbers ?? false,
+    savedBoardParam?.config.useShortNumbers ?? params.useShortNumbers ?? false,
   );
+  useEffect(() => {
+    const requestedShortMode =
+      savedBoardParam?.config.useShortNumbers ?? params.useShortNumbers;
+    if (requestedShortMode !== undefined) {
+      setUseShortNumbers(requestedShortMode);
+    }
+  }, [savedBoardParam, params.useShortNumbers]);
   const [frequency, setFrequency] = useState(600);
   const [cpm, setCpm] = useState(params.cpm ?? defaultBoardParams.cpm);
 
@@ -283,6 +290,7 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
     morseAudio.setFrequency(frequency);
     morseAudio.setCpm(cpm);
     morseAudio.setVolume(1.0);
+    morseAudio.setUseShortNumbers(useShortNumbers);
     setIsPlaying(true);
     setIsPaused(false);
     setHasPlayed(true);

@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
-  Animated,
   View,
   StyleSheet,
   Image,
   Text,
 } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
@@ -16,48 +16,36 @@ import { useLocalAIStore } from '../../store';
 function SplashScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isWarmedUp, isLoading, isReady, error, initialize } = useLocalAIStore();
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const progressAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(progress, {
-          toValue: 1,
-          duration: 1700,
-          useNativeDriver: false,
-        }),
-        Animated.timing(progress, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-
-    progressAnimation.start();
-
-    return () => {
-      progressAnimation.stop();
-    };
-  }, [progress]);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
   useEffect(() => {
-    if (!isWarmedUp && !error) return;
+    if (error) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'HomeScreen' }],
+      });
+      return;
+    }
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'HomeScreen' }],
-    });
+    if (!isWarmedUp) return;
+
+    const navigationTimeout = setTimeout(() => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'HomeScreen' }],
+      });
+    }, 1500);
+
+    return () => clearTimeout(navigationTimeout);
   }, [isWarmedUp, error, navigation]);
 
   const getLoadingText = () => {
-    if (isWarmedUp) return 'Học nào!';
+    if (isWarmedUp) return 'Mọi thứ đã sẵn sàng, cùng bắt đầu nhé!';
     if (isLoading && !isReady) return 'Đang tải mô hình...';
-    if (isLoading) return 'Đang tạo cache...';
+    if (isLoading) return 'Đang khởi tạo...';
     if (error) return 'Đang tải...';
 
     return 'Đang khởi tạo...';
@@ -72,24 +60,30 @@ function SplashScreen() {
           resizeMode="contain"
         />
 
+        {isWarmedUp && (
+          <LottieView
+            source={require('../../assets/animations/tick-mark.json')}
+            autoPlay
+            loop={false}
+            style={styles.readyAnimation}
+          />
+        )}
+
         <View style={styles.loadingWrap}>
+          {!isWarmedUp && (
+            <LottieView
+              source={require('../../assets/animations/loading.json')}
+              autoPlay
+              loop
+              style={styles.loadingAnimation}
+            />
+          )}
           <Text style={styles.loadingText}>
             {getLoadingText()}
           </Text>
-          <View style={styles.progressTrack}>
-            <Animated.View
-              style={[
-                styles.progressBar,
-                {
-                  width: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['12%', '92%'],
-                  }),
-                },
-              ]}
-            />
-          </View>
-          <Text style={styles.loadingHint}>MORI AI / DND</Text>
+          {!isWarmedUp && (
+            <Text style={styles.loadingHint}>MORI AI / DND</Text>
+          )}
         </View>
       </View>
     </View>
@@ -118,22 +112,18 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
   },
+  readyAnimation: {
+    width: 180,
+    height: 180,
+  },
   loadingWrap: {
     marginTop: 30,
     alignItems: 'center',
   },
-  progressTrack: {
-    width: 180,
-    height: 4,
-    marginTop: 18,
-    overflow: 'hidden',
-    borderRadius: 2,
-    backgroundColor: '#DCFCE7',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: colors.success,
+  loadingAnimation: {
+    width: 100,
+    height: 100,
+    marginBottom: 8,
   },
   loadingHint: {
     marginTop: 12,

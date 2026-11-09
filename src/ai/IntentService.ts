@@ -7,6 +7,11 @@ export type IntentType =
 
 import { CHARACTER_OPTIONS } from '../constants/characterTypes';
 
+const SHORT_NUMBER_MODE_PATTERN =
+  /(?:số\s*tắt|số\s*ngắn|short|(?:^|\s)tắt(?:$|\s|[,.!?]))/i;
+const STANDARD_NUMBER_MODE_PATTERN =
+  /(?:số\s*thường|số\s*dài|normal|(?:^|\s)thường(?:$|\s|[,.!?]))/i;
+
 export interface ParsedIntent {
   type: IntentType;
   params: Record<string, any>;
@@ -41,7 +46,7 @@ function generateFollowUpQuestion(intent: ParsedIntent): string {
       parts.push('bao nhiêu nhóm');
     }
     if (missing.includes('characterType')) {
-      parts.push('chữ cái, số thường, số tắt hay hỗn hợp');
+      parts.push('chữ cái, chữ số (phát thường hoặc tắt) hay hỗn hợp');
     }
     if (missing.includes('cpm')) {
       parts.push('tốc độ bao nhiêu chữ / phút');
@@ -88,10 +93,13 @@ const INTENT_PATTERNS: { type: IntentType; patterns: RegExp[]; extractor: (match
       // Extract characterType
       if (/(?:chữ\s*cái|letter)/i.test(text)) {
         params.characterType = 'letter'
-      } else if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(text)) {
-        params.characterType = 'shortNumber'
-      } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(text)) {
+      } else if (/(?:số\s*tắt|số\s*ngắn|short|số\s*thường|số\s*dài|normal|(?:^|\s)tắt(?:$|\s|[,.!?])|(?:^|\s)thường(?:$|\s|[,.!?])|chữ\s*số|number|số)/i.test(text)) {
         params.characterType = 'number'
+        if (SHORT_NUMBER_MODE_PATTERN.test(text)) {
+          params.useShortNumbers = true;
+        } else if (STANDARD_NUMBER_MODE_PATTERN.test(text)) {
+          params.useShortNumbers = false;
+        }
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(text)) {
         params.characterType = 'mixed'
       }
@@ -157,7 +165,10 @@ export function generateIntentResponse(type: IntentType, params: Record<string, 
       const charLabel = CHARACTER_OPTIONS.find(
         option => option.value === params.characterType,
       )?.label || params.characterType;
-      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}, tốc độ ${params.cpm} chữ / phút. Bắt đầu nhé!`;
+      const playbackMode = params.characterType === 'number' && params.useShortNumbers !== undefined
+        ? `, phát số ${params.useShortNumbers ? 'tắt' : 'thường'}`
+        : '';
+      return `Được! Mình sẽ mở bảng điện ${params.groupCount} nhóm, ${charLabel}${playbackMode}, tốc độ ${params.cpm} chữ / phút. Bắt đầu nhé!`;
     }
     case 'practice_listen':
       return 'Sau đây chúng ta qua màn hình nghe tín hiệu nhé';
@@ -220,14 +231,20 @@ export function collectMissingParams(
   } else {
     // Extract characterType
     if (intent.missingParams.includes('characterType')) {
-      if (/(?:số\s*tắt|số\s*ngắn|short)/i.test(normalizedText)) {
-        updatedParams.characterType = 'shortNumber';
-      } else if (/(?:số\s*thường|số\s*dài|normal|chữ\s*số|number|số)/i.test(normalizedText)) {
+      if (/(?:số\s*tắt|số\s*ngắn|short|số\s*thường|số\s*dài|normal|(?:^|\s)tắt(?:$|\s|[,.!?])|(?:^|\s)thường(?:$|\s|[,.!?])|chữ\s*số|number|số)/i.test(normalizedText)) {
         updatedParams.characterType = 'number';
       } else if (/(?:hỗn\s*hợp|mixed)/i.test(normalizedText)) {
         updatedParams.characterType = 'mixed';
       } else if (/(?:chữ\s*cái|letter)/i.test(normalizedText)) {
         updatedParams.characterType = 'letter';
+      }
+    }
+
+    if (updatedParams.characterType === 'number') {
+      if (SHORT_NUMBER_MODE_PATTERN.test(normalizedText)) {
+        updatedParams.useShortNumbers = true;
+      } else if (STANDARD_NUMBER_MODE_PATTERN.test(normalizedText)) {
+        updatedParams.useShortNumbers = false;
       }
     }
 
@@ -285,6 +302,7 @@ export function getIntentNavigation(type: IntentType, params: Record<string, any
           groupCount: params.groupCount,
           characterType: params.characterType,
           cpm: params.cpm,
+          useShortNumbers: params.useShortNumbers,
         },
       };
     case 'practice_listen':
