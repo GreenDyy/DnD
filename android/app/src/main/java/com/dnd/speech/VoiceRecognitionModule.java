@@ -41,6 +41,14 @@ public class VoiceRecognitionModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void addListener(String eventName) {
+    }
+
+    @ReactMethod
+    public void removeListeners(int count) {
+    }
+
+    @ReactMethod
     public void startListening(Promise promise) {
         if (isListening) {
             promise.reject("ALREADY_LISTENING", "Already listening");

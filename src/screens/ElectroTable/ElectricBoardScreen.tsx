@@ -66,10 +66,9 @@ const ElectricBoardScreen = ({ route, navigation }: Props) => {
 
   // Grid layout: 4 nhóm/hàng trên màn hình lớn hoặc 3 nhóm/hàng trên màn nhỏ
   const groupsPerRow = screenWidth < 380 ? 3 : 4;
-  const styles = createElectricBoardStyles(
-    screenWidth,
-    screenHeight,
-    groupsPerRow,
+  const styles = useMemo(
+    () => createElectricBoardStyles(screenWidth, screenHeight, groupsPerRow),
+    [screenWidth, screenHeight, groupsPerRow],
   );
 
   const params = route.params ?? defaultBoardParams;

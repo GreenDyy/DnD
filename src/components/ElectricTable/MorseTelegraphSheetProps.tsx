@@ -1,5 +1,58 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import {
+  Text,
+  View,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
+
+interface GroupCellProps {
+  group: string;
+  groupCellStyle: StyleProp<ViewStyle>;
+  groupTextStyle: StyleProp<TextStyle>;
+  highlightedTextStyle: StyleProp<TextStyle>;
+  morseHighlightOffset: number;
+  compareHighlightOffset: number;
+}
+
+const groupCharactersStyle = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+};
+
+const GroupCell = React.memo(
+  ({
+    group,
+    groupCellStyle,
+    groupTextStyle,
+    highlightedTextStyle,
+    morseHighlightOffset,
+    compareHighlightOffset,
+  }: GroupCellProps) => (
+    <View style={groupCellStyle}>
+      <View style={groupCharactersStyle}>
+        {group.split('').map((char, charOffset) => {
+          const isHighlighted =
+            morseHighlightOffset === charOffset ||
+            compareHighlightOffset === charOffset;
+
+          return (
+            <Text
+              key={`${char}-${charOffset}`}
+              style={[
+                groupTextStyle,
+                isHighlighted && highlightedTextStyle,
+              ]}
+            >
+              {char}
+            </Text>
+          );
+        })}
+      </View>
+    </View>
+  ),
+);
 
 // Định nghĩa kiểu props cho component MorseTelegraphSheet
 interface MorseTelegraphSheetProps {
@@ -105,42 +158,27 @@ export const MorseTelegraphSheet: React.FC<MorseTelegraphSheetProps> = ({
                       firstGroupStartIndex + currentGroupGlobalIndex * 6;
                     const compareGroupStartIndex = currentGroupGlobalIndex * 5;
 
+                    const morseHighlightOffset =
+                      activeMorseIndex >= morseGroupStartIndex &&
+                      activeMorseIndex < morseGroupStartIndex + group.length
+                        ? activeMorseIndex - morseGroupStartIndex
+                        : -1;
+                    const compareHighlightOffset =
+                      activeCompareIndex >= compareGroupStartIndex &&
+                      activeCompareIndex < compareGroupStartIndex + group.length
+                        ? activeCompareIndex - compareGroupStartIndex
+                        : -1;
+
                     return (
-                      <View
+                      <GroupCell
                         key={`${group}-${groupIdx}`}
-                        style={styles.groupCell}
-                      >
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                          }}
-                        >
-                          {group.split('').map((char, charOffset) => {
-                            const morseCharIdx =
-                              morseGroupStartIndex + charOffset;
-                            const compareCharIdx =
-                              compareGroupStartIndex + charOffset;
-
-                            // Highlight khi trùng khớp với tiến trình Morse hoặc Đối chiếu
-                            const isHighlighted =
-                              activeMorseIndex === morseCharIdx ||
-                              activeCompareIndex === compareCharIdx;
-
-                            return (
-                              <Text
-                                key={`${char}-${charOffset}`}
-                                style={[
-                                  styles.groupText,
-                                  isHighlighted && styles.charHighlighted,
-                                ]}
-                              >
-                                {char}
-                              </Text>
-                            );
-                          })}
-                        </View>
-                      </View>
+                        group={group}
+                        groupCellStyle={styles.groupCell}
+                        groupTextStyle={styles.groupText}
+                        highlightedTextStyle={styles.charHighlighted}
+                        morseHighlightOffset={morseHighlightOffset}
+                        compareHighlightOffset={compareHighlightOffset}
+                      />
                     );
                   })}
                 </View>

@@ -87,7 +87,9 @@ class MorseAudioEngine {
 
   private scheduledToneIndex = 0;
 
-  private progressTimers: ReturnType<typeof setTimeout>[] = [];
+  private progressTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private nextProgressEventIndex = 0;
 
   private audioPlaybackActive = false;
 
@@ -197,8 +199,10 @@ class MorseAudioEngine {
   }
 
   private clearProgressTimers() {
-    this.progressTimers.forEach(timer => clearTimeout(timer));
-    this.progressTimers = [];
+    if (this.progressTimer) {
+      clearTimeout(this.progressTimer);
+      this.progressTimer = null;
+    }
   }
 
   private clearAudioScheduleTimer() {
@@ -329,29 +333,40 @@ class MorseAudioEngine {
   }
 
   private scheduleProgressCallbacks(token: number) {
-    if (!this.context) return;
-
+    if (!this.context || this.isPaused || !this.audioPlaybackActive) return;
     this.clearProgressTimers();
-    for (const event of this.playbackProgress) {
-      if (event.timeMs < this.playbackElapsedMs) continue;
+    const event = this.playbackProgress[this.nextProgressEventIndex];
+    if (!event) return;
 
-      const delay = Math.max(
-        0,
-        (this.playbackStartTime + event.timeMs / 1000 - this.context.currentTime) * 1000,
-      );
-      const timer = setTimeout(() => {
-        if (
-          this.playbackToken !== token ||
-          this.stopRequested ||
-          this.isPaused
-        ) {
-          return;
-        }
-        this.currentIndex = event.textIndex;
-        this.onProgressCallback?.(event.textIndex, event.char);
-      }, delay);
-      this.progressTimers.push(timer);
-    }
+    const targetTime = this.playbackStartTime + event.timeMs / 1000;
+    const delay = Math.max(0, (targetTime - this.context.currentTime) * 1000);
+    this.progressTimer = setTimeout(() => {
+      this.progressTimer = null;
+      if (
+        this.playbackToken !== token ||
+        this.stopRequested ||
+        this.isPaused ||
+        !this.audioPlaybackActive ||
+        !this.context
+      ) {
+        return;
+      }
+
+      const elapsedMs = this.getPlaybackElapsedMs();
+      let latestDueEvent = this.playbackProgress[this.nextProgressEventIndex];
+      this.nextProgressEventIndex += 1;
+      while (
+        this.nextProgressEventIndex < this.playbackProgress.length &&
+        this.playbackProgress[this.nextProgressEventIndex].timeMs <= elapsedMs
+      ) {
+        latestDueEvent = this.playbackProgress[this.nextProgressEventIndex];
+        this.nextProgressEventIndex += 1;
+      }
+
+      this.currentIndex = latestDueEvent.textIndex;
+      this.onProgressCallback?.(latestDueEvent.textIndex, latestDueEvent.char);
+      this.scheduleProgressCallbacks(token);
+    }, delay);
   }
 
   private getPlaybackElapsedMs() {
@@ -477,6 +492,7 @@ class MorseAudioEngine {
     this.currentIndex = 0;
     this.playbackElapsedMs = 0;
     this.playbackStartTime = 0;
+    this.nextProgressEventIndex = 0;
     this.audioPlaybackActive = true;
     this.buildPlaybackPlan(text);
 
